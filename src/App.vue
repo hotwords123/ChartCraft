@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import Chart, { type ChartData, type ChartOptions } from './components/Chart.vue'
+import MyChart, { type ChartData, type ChartOptions } from './components/MyChart.vue'
 
 const data = ref<ChartData>([
   [2019, 2],
@@ -40,12 +40,12 @@ const options = ref<ChartOptions>({
     <h1>Hello, world!</h1>
   </header>
   <main>
-    <Chart :data="data" :options="options" />
+    <MyChart :data="data" :options="options" />
   </main>
 </template>
 
 <style scoped>
-  header {
-    margin-bottom: 1rem;
-  }
+header {
+  margin-bottom: 1rem;
+}
 </style>

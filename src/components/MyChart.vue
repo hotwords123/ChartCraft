@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref, watch, nextTick } from 'vue'
 
 export type ChartData = [number, number][]
 
@@ -28,30 +28,63 @@ export interface ChartOptions {
   }
 }
 
-const { data, options } = defineProps<{
+const props = defineProps<{
   data: ChartData
   options: ChartOptions
 }>()
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
+const ctxRef = ref<CanvasRenderingContext2D | null>(null)
 
 onMounted(() => {
   const canvas = canvasRef.value
   if (!canvas) return
 
-  const ctx = canvas.getContext('2d')
+  const ctx = canvas.getContext('2d')!
   if (!ctx) return
 
-  const devicePixelRatio = window.devicePixelRatio || 1
+  ctxRef.value = ctx
 
-  const { width, height } = options
+  resizeCanvas()
+  render()
+})
+
+let oldWidth = 0
+let oldHeight = 0
+
+function resizeCanvas() {
+  const canvas = canvasRef.value
+  const ctx = ctxRef.value
+  if (!canvas || !ctx) return
+
+  const { width, height } = props.options
+  oldWidth = width
+  oldHeight = height
+
+  const devicePixelRatio = window.devicePixelRatio || 1
 
   canvas.width = width * devicePixelRatio
   canvas.height = height * devicePixelRatio
   canvas.style.width = `${width}px`
   canvas.style.height = `${height}px`
 
+  ctx.resetTransform()
   ctx.scale(devicePixelRatio, devicePixelRatio)
+}
+
+function render() {
+  const ctx = ctxRef.value
+  if (!ctx) return
+
+  const { data, options } = props
+  const { width, height } = options
+
+  if (width !== oldWidth || height !== oldHeight) {
+    resizeCanvas()
+  }
+
+  ctx.save()
+  ctx.clearRect(0, 0, width, height)
 
   // calculate origin and box size
   const originX = 80
@@ -104,7 +137,7 @@ onMounted(() => {
   ctx.textBaseline = 'top'
   ctx.font = options.text.font
   ctx.fillStyle = options.text.fillStyle
-  data.forEach(([x, ], i) => {
+  data.forEach(([x], i) => {
     ctx.fillText(`${x}`, (i + 0.5) * xStep, 8)
   })
 
@@ -126,7 +159,7 @@ onMounted(() => {
   if (options.barChart.visible) {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'bottom'
-    data.forEach(([x, y], i) => {
+    data.forEach(([, y], i) => {
       // draw bar
       ctx.fillStyle = options.barChart.fillStyle
       ctx.fillRect((i + 0.25) * xStep, 0, 0.5 * xStep, -y * yStep)
@@ -136,7 +169,11 @@ onMounted(() => {
       ctx.fillText(`${y}`, (i + 0.5) * xStep, -y * yStep - 5)
     })
   }
-})
+
+  ctx.restore()
+}
+
+watch(props, () => nextTick(render))
 </script>
 
 <template>
@@ -146,15 +183,15 @@ onMounted(() => {
 </template>
 
 <style scoped>
-  .container {
-    position: relative;
-    width: fit-content;
-    border: 1px solid #dddddd;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  }
+.container {
+  position: relative;
+  width: fit-content;
+  border: 1px solid #dddddd;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
 
-  canvas {
-    display: block;
-    image-rendering: optimizeQuality;
-  }
+canvas {
+  display: block;
+  image-rendering: optimizeQuality;
+}
 </style>
