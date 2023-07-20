@@ -1,46 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch, nextTick } from 'vue'
-
-export type ChartData = [number, number][]
-
-export interface ChartOptions {
-  title: string
-  width: number
-  height: number
-  background: string
-  axes: {
-    color: string
-  }
-  barChart: {
-    visible: boolean
-    fillStyle: string | GradientOptions
-  }
-  lineChart: {
-    visible: boolean
-    strokeStyle: string
-    lineWidth: number
-    lineDash: DashPattern | number[]
-    marker: {
-      shape: 'circle' | 'square'
-      size: number
-      fillStyle: string
-      strokeStyle: string
-      lineWidth: number
-    }
-  }
-  text: {
-    font: string
-    titleFont: string
-    fillStyle: string
-  }
-}
-
-interface GradientOptions {
-  stops: {
-    offset: number
-    color: string
-  }[]
-}
+import { type ChartData, type ChartOptions, DASH_PATTERNS } from '@/chart'
 
 const props = defineProps<{
   data: ChartData
@@ -84,14 +44,6 @@ function resizeCanvas() {
 
   ctx.resetTransform()
   ctx.scale(devicePixelRatio, devicePixelRatio)
-}
-
-type DashPattern = keyof typeof DASH_PATTERNS
-const DASH_PATTERNS = {
-  solid: [],
-  dashed: [5],
-  dotted: [2, 5],
-  dashDotted: [5, 5, 2, 5],
 }
 
 function render() {
@@ -183,12 +135,12 @@ function render() {
     ctx.textBaseline = 'bottom'
 
     let barFillStyle: string | CanvasGradient
-    if (typeof options.barChart.fillStyle === "string") {
+    if (typeof options.barChart.fillStyle === 'string') {
       barFillStyle = options.barChart.fillStyle
     } else {
       const { stops } = options.barChart.fillStyle
       const gradient = ctx.createLinearGradient(0, 0, 0, -boxHeight)
-      for (const { offset, color} of stops) {
+      for (const { offset, color } of stops) {
         gradient.addColorStop(offset, color)
       }
       barFillStyle = gradient
@@ -287,6 +239,7 @@ watch(props, () => nextTick(render))
 .container {
   position: relative;
   width: fit-content;
+  height: fit-content;
   border: 1px solid #dddddd;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
