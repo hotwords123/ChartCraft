@@ -19,8 +19,8 @@ const options = ref<ChartOptions>({
   },
   lineChart: {
     visible: true,
-    strokeStyle: 'blue',
-    lineWidth: 2,
+    strokeStyle: '#6495ed',
+    lineWidth: 1.5,
     marker: {
       shape: 'circle',
       size: 5,

@@ -130,7 +130,7 @@ function render() {
   // calculate layout
   const xStep = boxWidth / data.length
   const yMax = Math.max(...data.map(([, y]) => y))
-  const yStep = boxHeight / (1.2 * yMax)
+  const yStep = boxHeight / (1.4 * yMax)
 
   // draw x-axis labels
   ctx.textAlign = 'center'
@@ -170,6 +170,64 @@ function render() {
     })
   }
 
+  // draw line chart
+  if (options.lineChart.visible) {
+    // generate data points
+    const total = data.reduce((sum, [, y]) => sum + y, 0)
+    const percentages = data.map(([, y]) => (y / total) * 100)
+
+    // calculate layout
+    const maxPercentage = Math.max(...percentages)
+    const yOffset = 80
+    const yStep = (boxHeight - yOffset) / (1.2 * maxPercentage)
+    ctx.save()
+    ctx.translate(0, -yOffset)
+
+    // draw lines
+    ctx.strokeStyle = options.lineChart.strokeStyle
+    ctx.lineWidth = options.lineChart.lineWidth
+    ctx.beginPath()
+    percentages.forEach((y, i) => {
+      const x0 = (i + 0.5) * xStep
+      const y0 = -y * yStep
+      if (i === 0) {
+        ctx.moveTo(x0, y0)
+      } else {
+        ctx.lineTo(x0, y0)
+      }
+    })
+    ctx.stroke()
+
+    // draw markers
+    const { shape, size, fillStyle, strokeStyle } = options.lineChart.marker
+    percentages.forEach((y, i) => {
+      const x0 = (i + 0.5) * xStep
+      const y0 = -y * yStep
+
+      ctx.fillStyle = fillStyle
+      ctx.strokeStyle = strokeStyle
+      ctx.beginPath()
+      switch (shape) {
+        case 'circle':
+          ctx.arc(x0, y0, size, 0, 2 * Math.PI)
+          break
+        case 'square':
+          ctx.rect(x0 - size, y0 - size, 2 * size, 2 * size)
+          break
+      }
+      ctx.fill()
+      ctx.stroke()
+
+      // draw marker value
+      ctx.fillStyle = options.text.fillStyle
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'bottom'
+      ctx.fillText(`${y.toFixed(0)}%`, x0, y0 - 15)
+    })
+
+    ctx.restore()
+  }
+
   ctx.restore()
 }
 
@@ -190,7 +248,7 @@ watch(props, () => nextTick(render))
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-canvas {
+.container canvas {
   display: block;
   image-rendering: optimizeQuality;
 }
