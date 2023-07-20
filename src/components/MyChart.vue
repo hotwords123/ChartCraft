@@ -15,6 +15,7 @@ export interface ChartOptions {
     visible: boolean
     strokeStyle: string
     lineWidth: number
+    lineDash: DashPattern | number[]
     marker: {
       shape: 'circle' | 'square'
       size: number
@@ -40,7 +41,7 @@ onMounted(() => {
   const canvas = canvasRef.value
   if (!canvas) return
 
-  const ctx = canvas.getContext('2d')!
+  const ctx = canvas.getContext('2d')
   if (!ctx) return
 
   ctxRef.value = ctx
@@ -70,6 +71,14 @@ function resizeCanvas() {
 
   ctx.resetTransform()
   ctx.scale(devicePixelRatio, devicePixelRatio)
+}
+
+type DashPattern = keyof typeof DASH_PATTERNS
+const DASH_PATTERNS = {
+  solid: [],
+  dashed: [5],
+  dotted: [2, 5],
+  dashDotted: [5, 5, 2, 5],
 }
 
 function render() {
@@ -186,6 +195,12 @@ function render() {
     // draw lines
     ctx.strokeStyle = options.lineChart.strokeStyle
     ctx.lineWidth = options.lineChart.lineWidth
+    if (Array.isArray(options.lineChart.lineDash)) {
+      ctx.setLineDash(options.lineChart.lineDash)
+    } else {
+      ctx.setLineDash(DASH_PATTERNS[options.lineChart.lineDash])
+    }
+
     ctx.beginPath()
     percentages.forEach((y, i) => {
       const x0 = (i + 0.5) * xStep
@@ -197,6 +212,7 @@ function render() {
       }
     })
     ctx.stroke()
+    ctx.setLineDash([])
 
     // draw markers
     const { shape, size, fillStyle, strokeStyle } = options.lineChart.marker

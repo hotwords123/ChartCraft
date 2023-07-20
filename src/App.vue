@@ -21,6 +21,7 @@ const options = ref<ChartOptions>({
     visible: true,
     strokeStyle: '#6495ed',
     lineWidth: 1.5,
+    lineDash: "solid",
     marker: {
       shape: 'circle',
       size: 5,
