@@ -7,9 +7,13 @@ export interface ChartOptions {
   title: string
   width: number
   height: number
+  background: string
+  axes: {
+    color: string
+  }
   barChart: {
     visible: boolean
-    fillStyle: string
+    fillStyle: string | GradientOptions
   }
   lineChart: {
     visible: boolean
@@ -21,12 +25,21 @@ export interface ChartOptions {
       size: number
       fillStyle: string
       strokeStyle: string
+      lineWidth: number
     }
   }
   text: {
     font: string
+    titleFont: string
     fillStyle: string
   }
+}
+
+interface GradientOptions {
+  stops: {
+    offset: number
+    color: string
+  }[]
 }
 
 const props = defineProps<{
@@ -104,19 +117,19 @@ function render() {
   // draw title
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
-  ctx.font = '24px "Segoe UI", Arial, sans-serif'
+  ctx.font = options.text.titleFont
   ctx.fillStyle = options.text.fillStyle
   ctx.fillText(options.title, width / 2, 55)
 
   ctx.translate(originX, originY)
 
   // draw background
-  ctx.fillStyle = '#f7f7f7'
+  ctx.fillStyle = options.background
   ctx.fillRect(0, 0, boxWidth, -boxHeight)
 
   // draw x-axis
-  ctx.fillStyle = '#a5bce4'
-  ctx.strokeStyle = '#a5bce4'
+  ctx.fillStyle = options.axes.color
+  ctx.strokeStyle = options.axes.color
   ctx.beginPath()
   ctx.moveTo(0, 0)
   ctx.lineTo(boxWidth + 10, 0)
@@ -168,9 +181,22 @@ function render() {
   if (options.barChart.visible) {
     ctx.textAlign = 'center'
     ctx.textBaseline = 'bottom'
+
+    let barFillStyle: string | CanvasGradient
+    if (typeof options.barChart.fillStyle === "string") {
+      barFillStyle = options.barChart.fillStyle
+    } else {
+      const { stops } = options.barChart.fillStyle
+      const gradient = ctx.createLinearGradient(0, 0, 0, -boxHeight)
+      for (const { offset, color} of stops) {
+        gradient.addColorStop(offset, color)
+      }
+      barFillStyle = gradient
+    }
+
     data.forEach(([, y], i) => {
       // draw bar
-      ctx.fillStyle = options.barChart.fillStyle
+      ctx.fillStyle = barFillStyle
       ctx.fillRect((i + 0.25) * xStep, 0, 0.5 * xStep, -y * yStep)
 
       // draw bar value
@@ -215,13 +241,14 @@ function render() {
     ctx.setLineDash([])
 
     // draw markers
-    const { shape, size, fillStyle, strokeStyle } = options.lineChart.marker
+    const { shape, size, fillStyle, strokeStyle, lineWidth } = options.lineChart.marker
     percentages.forEach((y, i) => {
       const x0 = (i + 0.5) * xStep
       const y0 = -y * yStep
 
       ctx.fillStyle = fillStyle
       ctx.strokeStyle = strokeStyle
+      ctx.lineWidth = lineWidth
       ctx.beginPath()
       switch (shape) {
         case 'circle':

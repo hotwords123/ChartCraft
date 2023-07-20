@@ -13,9 +13,18 @@ const options = ref<ChartOptions>({
   title: 'My Chart',
   width: 640,
   height: 480,
+  background: '#f7f7f7',
+  axes: {
+    color: '#a5bce4',
+  },
   barChart: {
     visible: true,
-    fillStyle: '#81ceaa',
+    fillStyle: {
+      stops: [
+        { offset: 0, color: '#6096e6' },
+        { offset: 1, color: '#81eeaa' },
+      ]
+    },
   },
   lineChart: {
     visible: true,
@@ -27,10 +36,12 @@ const options = ref<ChartOptions>({
       size: 5,
       fillStyle: '#6096e6',
       strokeStyle: '#5682c3',
+      lineWidth: 1.5,
     },
   },
   text: {
     font: '14px "Segoe UI", Arial, sans-serif',
+    titleFont: '24px "Segoe UI", Arial, sans-serif',
     fillStyle: '#222',
   },
 })
