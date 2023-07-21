@@ -142,6 +142,8 @@ main {
 
 main .settings {
   flex: 1 1;
+  margin: 0 auto;
+  max-width: 640px;
   min-height: 320px;
 }
 
