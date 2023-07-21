@@ -1,4 +1,5 @@
-export type ChartData = [number, number][]
+export type ChartDataItem = [string, number]
+export type ChartData = ChartDataItem[]
 
 export interface ChartOptions {
   title: string

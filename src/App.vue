@@ -12,20 +12,52 @@ import {
   NSelect,
   NSwitch,
   NColorPicker,
+  NCheckbox,
+  NDynamicInput,
   NScrollbar,
 } from 'naive-ui'
 import MyChart from './components/MyChart.vue'
-import type { ChartData, ChartOptions } from './chart'
+import type { ChartDataItem, ChartOptions } from './chart'
 import { DASH_PATTERNS } from './chart'
 
-const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, value: name }))
+/* chart data */
 
-const data = ref<ChartData>([
-  [2019, 2],
-  [2020, 3],
-  [2021, 5],
-  [2022, 4],
-])
+interface DataItem {
+  x: string
+  y: number
+  checked: boolean
+}
+
+const initialData = [
+  ['2019', 2],
+  ['2020', 3],
+  ['2021', 5],
+  ['2022', 4],
+] as const
+const data = ref<DataItem[]>(initialData.map(([x, y]) => ({ x, y, checked: true })))
+
+const chartData = computed(() => {
+  return data.value.filter((item) => item.checked).map((item) => [item.x, item.y] as ChartDataItem)
+})
+
+function onUpdateY(index: number, value: number | null) {
+  if (value !== null) {
+    data.value[index].y = value
+  }
+}
+
+function onCreate(index: number): DataItem {
+  let x = ''
+  if (index > 0 && index <= data.value.length) {
+    let prevX = parseInt(data.value[index - 1].x)
+    if (!isNaN(prevX)) {
+      x = `${prevX + 1}`
+    }
+  }
+  return { x, y: 0, checked: true }
+}
+
+/* chart options */
 
 const options = ref<ChartOptions>({
   title: 'My Chart',
@@ -80,6 +112,8 @@ function useNonNullNumber<K extends string>(object: Record<K, number>, key: K) {
 const chartWidth = useNonNullNumber(options.value, 'width')
 const chartHeight = useNonNullNumber(options.value, 'height')
 const lineChartLineWidth = useNonNullNumber(options.value.lineChart, 'lineWidth')
+
+const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, value: name }))
 </script>
 
 <template>
@@ -87,11 +121,25 @@ const lineChartLineWidth = useNonNullNumber(options.value.lineChart, 'lineWidth'
     <h1>Hello, world!</h1>
   </header>
   <main>
-    <MyChart class="chart" :data="data" :options="options" />
+    <MyChart class="chart" :data="chartData" :options="options" />
     <n-card class="settings" title="图表设置">
       <n-tabs type="line" animated pane-class="pane">
         <n-tab-pane name="data" tab="数据">
-          <!-- TODO -->
+          <n-dynamic-input v-model:value="data" :on-create="onCreate">
+            <template #create-button-default>添加数据</template>
+            <template #default="{ index, value }">
+              <div class="data-item">
+                <n-checkbox v-model:checked="value.checked" class="checkbox" />
+                <n-input v-model:value="value.x" type="text" class="input-x" placeholder="x" />
+                <n-input-number
+                  :value="value.y"
+                  @update:value="value => onUpdateY(index, value)"
+                  class="input-y"
+                  placeholder="y"
+                />
+              </div>
+            </template>
+          </n-dynamic-input>
         </n-tab-pane>
         <n-tab-pane name="appearance" tab="外观">
           <n-form label-placement="top">
@@ -122,12 +170,7 @@ const lineChartLineWidth = useNonNullNumber(options.value.lineChart, 'lineWidth'
                 <n-color-picker v-model:value="options.lineChart.strokeStyle" :show-alpha="false" />
               </n-form-item-gi>
               <n-form-item-gi :span="8" label="线条粗细">
-                <n-input-number
-                  v-model:value="lineChartLineWidth"
-                  :min="1"
-                  :max="5"
-                  :step="0.1"
-                />
+                <n-input-number v-model:value="lineChartLineWidth" :min="1" :max="5" :step="0.1" />
               </n-form-item-gi>
               <n-form-item-gi :span="8" label="线条类型">
                 <n-select v-model:value="options.lineChart.lineDash" :options="DASH_OPTIONS" />
@@ -167,6 +210,22 @@ main .settings {
 main .settings .pane {
   padding-left: 4px;
   padding-right: 4px;
+  padding-bottom: 4px;
+}
+
+.data-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.data-item .checkbox {
+  margin-right: 8px;
+}
+
+.data-item .input-x {
+  max-width: 120px;
 }
 
 @media screen and (max-width: 1200px) {
