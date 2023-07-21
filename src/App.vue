@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import {
   NCard,
   NTabs,
@@ -63,6 +63,23 @@ const options = ref<ChartOptions>({
     fillStyle: '#222',
   },
 })
+
+function useNonNullNumber<K extends string>(object: Record<K, number>, key: K) {
+  return computed({
+    get() {
+      return object[key] as number
+    },
+    set(value: number | null) {
+      if (value !== null) {
+        object[key] = value
+      }
+    },
+  })
+}
+
+const chartWidth = useNonNullNumber(options.value, 'width')
+const chartHeight = useNonNullNumber(options.value, 'height')
+const lineChartLineWidth = useNonNullNumber(options.value.lineChart, 'lineWidth')
 </script>
 
 <template>
@@ -83,10 +100,10 @@ const options = ref<ChartOptions>({
                 <n-input v-model:value="options.title" />
               </n-form-item-gi>
               <n-form-item-gi :span="7" label="图表宽度">
-                <n-input-number v-model:value="options.width" :min="360" :max="1024" />
+                <n-input-number v-model:value="chartWidth" :min="360" :max="1080" :step="20" />
               </n-form-item-gi>
               <n-form-item-gi :span="7" label="图表高度">
-                <n-input-number v-model:value="options.height" :min="240" :max="720" />
+                <n-input-number v-model:value="chartHeight" :min="240" :max="720" :step="20" />
               </n-form-item-gi>
               <n-form-item-gi :span="5" label="柱状图">
                 <n-switch v-model:value="options.barChart.visible" />
@@ -106,7 +123,7 @@ const options = ref<ChartOptions>({
               </n-form-item-gi>
               <n-form-item-gi :span="8" label="线条粗细">
                 <n-input-number
-                  v-model:value="options.lineChart.lineWidth"
+                  v-model:value="lineChartLineWidth"
                   :min="1"
                   :max="5"
                   :step="0.1"
