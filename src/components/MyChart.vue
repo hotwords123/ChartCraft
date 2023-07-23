@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch, nextTick } from 'vue'
+import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { type ChartData, type ChartOptions, DASH_PATTERNS } from '@/chart'
 
 const props = defineProps<{
@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let ctx: CanvasRenderingContext2D | null = null
+const zoomRef = ref(1)
 
 onMounted(() => {
   const canvas = canvasRef.value
@@ -21,6 +22,29 @@ onMounted(() => {
 
   resizeCanvas()
   render(ctx)
+
+  // 添加事件监听器
+  const handleWheel = (event: WheelEvent) => {
+    if (event.deltaY < 0) {
+      // 向上滚动时增加缩放级别
+      zoomRef.value *= 1.01
+    } else {
+      // 向下滚动时减少缩放级别
+      zoomRef.value /= 1.01
+    }
+
+    // 重新渲染图表
+    if (ctx) {
+      render(ctx)
+    }
+  }
+
+  canvas.addEventListener('wheel', handleWheel)
+
+  // 在 onUnmounted 中移除事件监听器
+  onUnmounted(() => {
+    canvas.removeEventListener('wheel', handleWheel)
+  })
 })
 
 watch(props, () => {
@@ -78,8 +102,10 @@ function calculateLayout() {
   // calculate origin and box size
   originX = 80
   originY = height - 40
-  boxWidth = width - 70 - originX
-  boxHeight = originY - 80
+  boxWidth = (width - 70 - originX) * zoomRef.value
+  boxHeight = (originY - 80) * zoomRef.value
+  originX += (width - 70 - originX) * (1 - zoomRef.value) / 2
+  originY -= (originY - 80) * (1 - zoomRef.value) / 2
 
   // calculate step size
   stepX = boxWidth / data.length
@@ -126,7 +152,7 @@ function render(ctx: CanvasRenderingContext2D) {
   ctx.textBaseline = 'bottom'
   ctx.font = options.text.titleFont
   ctx.fillStyle = options.text.fillStyle
-  ctx.fillText(options.title, width / 2, 55) // FIXME: hard-coded value
+  ctx.fillText(options.title, originX + boxWidth / 2, (height - originY) * 1.2, originX + boxWidth / 2)
 
   ctx.translate(originX, originY)
 
