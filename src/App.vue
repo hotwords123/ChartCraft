@@ -47,6 +47,10 @@ function getYearTimestamp(year: number): number {
   return new Date(year, 0).getTime()
 }
 
+function onUpdateX(index: number, value: string) {
+  data.value[index].x = value
+}
+
 function onUpdateY(index: number, value: number | null) {
   if (value !== null) {
     data.value[index].y = value
@@ -174,12 +178,18 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
               <template #default="{ index, value }">
                 <div class="data-item">
                   <n-checkbox v-model:checked="value.checked" class="checkbox" />
-                  <n-input v-model:value="value.x" type="text" class="input-x" placeholder="x" />
+                  <n-date-picker
+                    :value="getYearTimestamp(parseInt(value.x))"
+                    @update:formatted-value="(value) => onUpdateX(index, value)"
+                    type="year"
+                    class="input-x"
+                    placeholder="年份"
+                  />
                   <n-input-number
                     :value="value.y"
                     @update:value="(value) => onUpdateY(index, value)"
                     class="input-y"
-                    placeholder="y"
+                    placeholder="产量"
                   />
                 </div>
               </template>
