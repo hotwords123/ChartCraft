@@ -125,21 +125,23 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
     <n-card class="settings" title="图表设置">
       <n-tabs type="line" animated pane-class="pane">
         <n-tab-pane name="data" tab="数据">
-          <n-dynamic-input v-model:value="data" :on-create="onCreate">
-            <template #create-button-default>添加数据</template>
-            <template #default="{ index, value }">
-              <div class="data-item">
-                <n-checkbox v-model:checked="value.checked" class="checkbox" />
-                <n-input v-model:value="value.x" type="text" class="input-x" placeholder="x" />
-                <n-input-number
-                  :value="value.y"
-                  @update:value="value => onUpdateY(index, value)"
-                  class="input-y"
-                  placeholder="y"
-                />
-              </div>
-            </template>
-          </n-dynamic-input>
+          <n-scrollbar class="scroll">
+            <n-dynamic-input v-model:value="data" :on-create="onCreate">
+              <template #create-button-default>添加数据</template>
+              <template #default="{ index, value }">
+                <div class="data-item">
+                  <n-checkbox v-model:checked="value.checked" class="checkbox" />
+                  <n-input v-model:value="value.x" type="text" class="input-x" placeholder="x" />
+                  <n-input-number
+                    :value="value.y"
+                    @update:value="value => onUpdateY(index, value)"
+                    class="input-y"
+                    placeholder="y"
+                  />
+                </div>
+              </template>
+            </n-dynamic-input>
+          </n-scrollbar>
         </n-tab-pane>
         <n-tab-pane name="appearance" tab="外观">
           <n-form label-placement="top">
@@ -179,7 +181,7 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
           </n-form>
         </n-tab-pane>
         <n-tab-pane name="JSON" tab="JSON">
-          <n-scrollbar style="max-height: 400px">
+          <n-scrollbar class="scroll">
             <pre>{{ JSON.stringify(options, null, 2) }}</pre>
           </n-scrollbar>
         </n-tab-pane>
@@ -211,6 +213,10 @@ main .settings .pane {
   padding-left: 4px;
   padding-right: 4px;
   padding-bottom: 4px;
+}
+
+main .settings .pane :deep(.scroll) {
+  max-height: 400px;
 }
 
 .data-item {
