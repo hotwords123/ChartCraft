@@ -71,7 +71,9 @@ let barStepY: number
 let lineOffsetY: number
 let lineStepY: number
 
-function calculateLayout() {
+let xTickIndices: number[]
+
+function calculateLayout(ctx: CanvasRenderingContext2D) {
   const { data, options } = props
   const { width, height } = options
 
@@ -84,6 +86,24 @@ function calculateLayout() {
   // calculate step size
   stepX = boxWidth / data.length
 
+  // calculate x-axis tick step
+  const xTickStep = binarySearchMin(1, data.length, (step) => {
+    const width = step * stepX
+    for (let i = 0; i < data.length; i += step) {
+      const labelWidth = ctx.measureText(data[i][0]).width
+      if (labelWidth + 20 > 0.8 * width) {
+        return false
+      }
+    }
+    return true
+  })
+
+  // generate x-axis tick indices
+  xTickIndices = []
+  for (let i = 0; i < data.length; i += xTickStep) {
+    xTickIndices.push(i)
+  }
+
   // for bar chart
   const yMax = Math.max(...data.map(([, y]) => y))
   barStepY = boxHeight / (1.4 * yMax)
@@ -95,6 +115,29 @@ function calculateLayout() {
 
   // TODO: better step size calculation?
   // TODO: adaptive tick values
+}
+
+/**
+ * Finds the smallest integer that satisfies the given predicate.
+ * @param lbound the lower bound of the search range
+ * @param ubound the upper bound of the search range
+ * @param predicate the predicate to test
+ * @returns the result integer
+ */
+function binarySearchMin(
+  lbound: number,
+  ubound: number,
+  predicate: (value: number) => boolean,
+): number {
+  while (lbound < ubound) {
+    let mid = Math.floor((lbound + ubound) / 2)
+    if (predicate(mid)) {
+      ubound = mid
+    } else {
+      lbound = mid + 1
+    }
+  }
+  return lbound
 }
 
 /* ==== render ==== */
@@ -112,7 +155,7 @@ function render(ctx: CanvasRenderingContext2D) {
     oldHeight = height
   }
 
-  calculateLayout()
+  calculateLayout(ctx)
 
   ctx.save()
   ctx.clearRect(0, 0, width, height)
@@ -177,9 +220,9 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
   ctx.textBaseline = 'top'
   ctx.font = options.text.font
   ctx.fillStyle = options.text.fillStyle
-  data.forEach(([x], i) => {
-    ctx.fillText(`${x}`, (i + 0.5) * stepX, 8)
-  })
+  for (let i of xTickIndices) {
+    ctx.fillText(`${data[i][0]}`, (i + 0.5) * stepX, 8)
+  }
 
   // draw x-axis title
   ctx.textAlign = 'left'
