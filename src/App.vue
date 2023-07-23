@@ -127,7 +127,7 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
       <n-tabs type="line" animated pane-class="pane">
         <n-tab-pane name="data" tab="数据">
           <n-scrollbar class="scroll">
-            <n-dynamic-input v-model:value="data" :on-create="onCreate">
+            <n-dynamic-input v-model:value="data" :on-create="onCreate" class="padding">
               <template #create-button-default>添加数据</template>
               <template #default="{ index, value }">
                 <div class="data-item">
@@ -145,7 +145,7 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
           </n-scrollbar>
         </n-tab-pane>
         <n-tab-pane name="appearance" tab="外观">
-          <n-form label-placement="top">
+          <n-form label-placement="top" class="padding">
             <n-grid :cols="24" :x-gap="12">
               <n-form-item-gi :span="24" label="图表标题">
                 <n-input v-model:value="options.title" />
@@ -167,7 +167,7 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
         </n-tab-pane>
         <n-tab-pane name="bar-chart" tab="柱状图"> </n-tab-pane>
         <n-tab-pane name="line-chart" tab="折线图">
-          <n-form label-placement="top">
+          <n-form label-placement="top" class="padding">
             <n-grid :cols="24" :x-gap="12">
               <n-form-item-gi :span="8" label="线条颜色">
                 <n-color-picker v-model:value="options.lineChart.strokeStyle" :show-alpha="false" />
@@ -210,10 +210,8 @@ main .settings {
   min-height: 320px;
 }
 
-main .settings .pane {
-  padding-left: 4px;
-  padding-right: 4px;
-  padding-bottom: 4px;
+main .settings .pane .padding {
+  padding: 4px;
 }
 
 main .settings .pane :deep(.scroll) {
