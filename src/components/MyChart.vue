@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { type ChartData, type ChartOptions, DASH_PATTERNS, type FontOptions } from '@/chart'
+import TickLocator from '@/TickLocator'
 
 const props = defineProps<{
   data: ChartData
@@ -104,6 +105,7 @@ let lineOffsetY: number
 let lineStepY: number
 
 let xTickIndices: number[]
+let yTicks: number[]
 
 function calculateLayout(ctx: CanvasRenderingContext2D) {
   const { data, options } = props
@@ -112,8 +114,8 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
   // calculate origin and box size
   originX = 80
   originY = height - 40
-  boxWidth = (width - 70 - originX)
-  boxHeight = (originY - 80)
+  boxWidth = width - 70 - originX
+  boxHeight = originY - 80
 
   // calculate step size
   stepX = boxWidth / data.length
@@ -138,15 +140,16 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
 
   // for bar chart
   const yMax = Math.max(...data.map(([, y]) => y))
-  barStepY = boxHeight / (1.4 * yMax)
+
+  const locator = new TickLocator()
+  // TODO: ticks start from non-zero
+  yTicks = locator.getTicks(0, yMax)
+  barStepY = boxHeight / (1.4 * yTicks[yTicks.length - 1])
 
   // for line chart
   const maxPercentage = Math.max(...percentages)
   lineOffsetY = 80
   lineStepY = (boxHeight - lineOffsetY) / (1.2 * maxPercentage)
-
-  // TODO: better step size calculation?
-  // TODO: adaptive tick values
 }
 
 /**
@@ -219,7 +222,12 @@ function render(ctx: CanvasRenderingContext2D) {
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
   applyFontOptions(ctx, options.text.title)
-  ctx.fillText(options.title, originX + boxWidth / 2, (height - originY) * 1.2, originX + boxWidth / 2)
+  ctx.fillText(
+    options.title,
+    originX + boxWidth / 2,
+    (height - originY) * 1.2,
+    originX + boxWidth / 2,
+  )
 
   ctx.translate(originX, originY)
 
@@ -280,9 +288,8 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
   // draw y-axis labels
   ctx.textAlign = 'right'
   ctx.textBaseline = 'middle'
-  const yMax = Math.max(...data.map(([, y]) => y))
-  for (let i = 0; i <= yMax; i++) {
-    ctx.fillText(`${i}`, -8, -i * barStepY)
+  for (let y of yTicks) {
+    ctx.fillText(`${y}`, -8, -y * barStepY)
   }
 
   // draw y-axis title
