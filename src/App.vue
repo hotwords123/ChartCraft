@@ -6,8 +6,9 @@ import {
   NTabPane,
   NForm,
   NGrid,
-  NFormItem,
   NFormItemGi,
+  NInputGroup,
+  NInputGroupLabel,
   NInput,
   NInputNumber,
   NSelect,
@@ -17,7 +18,6 @@ import {
   NDynamicInput,
   NScrollbar,
   NDatePicker,
-  NButton,
 } from 'naive-ui'
 import MyChart from './components/MyChart.vue'
 import type { ChartDataItem, ChartOptions } from './chart'
@@ -68,23 +68,22 @@ function onCreate(index: number): DataItem {
   return { x, y: 0, checked: true }
 }
 
-const yearFilter = ref<[number, number]>([
-  getYearTimestamp(2019),
-  getYearTimestamp(2021),
-])
+function applyYearFilter(filter: [number, number] | null) {
+  // 在这里实现筛选逻辑
+  if (!filter) return
 
-function applyYearFilter() {
-    // 在这里实现筛选逻辑
-    const [start, end] = yearFilter.value
-    data.value.forEach((item) => {
-      const year = parseInt(item.x)
-      const timestamp = getYearTimestamp(year)
-      item.checked = timestamp >= start && timestamp <= end
-    })
+  const [start, end] = filter
+  data.value.forEach((item) => {
+    const year = parseInt(item.x)
+    const timestamp = getYearTimestamp(year)
+    item.checked = timestamp >= start && timestamp <= end
+  })
 }
 
 function clearYearFilter() {
-  yearFilter.value = [0, 0]
+  for (let item of data.value) {
+    item.checked = true
+  }
 }
 
 /* chart options */
@@ -156,22 +155,16 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
     <n-card class="settings" title="图表设置">
       <n-tabs type="line" animated pane-class="pane">
         <n-tab-pane name="data" tab="数据">
-          <n-form label-placement="left" inline class="padding">
-            <n-form-item label="年份筛选">
-              <n-date-picker
-                v-model:value="yearFilter"
-                type="yearrange"
-                clearable
-                class="year-filter"
-              />
-            </n-form-item>
-            <n-form-item>
-              <n-button type="success" @click="applyYearFilter">筛选</n-button>
-            </n-form-item>
-            <n-form-item>
-              <n-button type="default" @click="clearYearFilter">清空</n-button>
-            </n-form-item>
-          </n-form>
+          <n-input-group class="year-filter-container">
+            <n-input-group-label>年份筛选</n-input-group-label>
+            <n-date-picker
+              @confirm="applyYearFilter"
+              @clear="clearYearFilter"
+              type="yearrange"
+              clearable
+              class="year-filter"
+            />
+          </n-input-group>
           <n-scrollbar class="scroll">
             <n-dynamic-input v-model:value="data" :on-create="onCreate" class="padding">
               <template #create-button-default>添加数据</template>
@@ -258,6 +251,7 @@ main {
 main .settings {
   flex: 1 1;
   margin: 0 auto;
+  min-width: 400px;
   max-width: 640px;
   min-height: 320px;
 }
@@ -268,6 +262,10 @@ main .settings .pane .padding {
 
 main .settings .pane :deep(.scroll) {
   max-height: 400px;
+}
+
+.year-filter-container {
+  margin-bottom: 8px;
 }
 
 .year-filter {
