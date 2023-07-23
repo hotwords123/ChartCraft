@@ -12,6 +12,7 @@ const props = defineProps<{
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let ctx: CanvasRenderingContext2D | null = null
 const zoomRef = ref(1)
+const translateRef = ref({ x: 0, y: 0 })
 
 onMounted(() => {
   const canvas = canvasRef.value
@@ -23,12 +24,16 @@ onMounted(() => {
   resizeCanvas()
   render(ctx)
 
+  const handleMouseMove = (event: MouseEvent) => {
+    // 更新鼠标的位置
+    translateRef.value = { x: event.clientX, y: event.clientY }
+  }
+
   // 添加事件监听器
   const handleWheel = (event: WheelEvent) => {
     if (event.deltaY < 0) {
       // 向上滚动时增加缩放级别
       zoomRef.value *= 1.01
-      zoomRef.value = Math.min(1.05, zoomRef.value)
     } else {
       // 向下滚动时减少缩放级别
       zoomRef.value /= 1.01
@@ -40,10 +45,12 @@ onMounted(() => {
     }
   }
 
+  canvas.addEventListener('mousemove', handleMouseMove)
   canvas.addEventListener('wheel', handleWheel)
 
   // 在 onUnmounted 中移除事件监听器
   onUnmounted(() => {
+    canvas.removeEventListener('mousemove', handleMouseMove)
     canvas.removeEventListener('wheel', handleWheel)
   })
 })
@@ -105,10 +112,8 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
   // calculate origin and box size
   originX = 80
   originY = height - 40
-  boxWidth = (width - 70 - originX) * zoomRef.value
-  boxHeight = (originY - 80) * zoomRef.value
-  originX += (width - 70 - originX) * (1 - zoomRef.value) / 2
-  originY -= (originY - 80) * (1 - zoomRef.value) / 2
+  boxWidth = (width - 70 - originX)
+  boxHeight = (originY - 80)
 
   // calculate step size
   stepX = boxWidth / data.length
@@ -185,6 +190,19 @@ function render(ctx: CanvasRenderingContext2D) {
   calculateLayout(ctx)
 
   ctx.save()
+  // // 获取缩放中心
+  const centerX = translateRef.value.x
+  const centerY = translateRef.value.y
+
+  // // 平移到缩放中心
+  ctx.translate(centerX, centerY)
+
+  // // 根据缩放级别进行缩放
+  ctx.scale(zoomRef.value, zoomRef.value)
+
+  // 平移回来
+  ctx.translate(-centerX, -centerY)
+  
   ctx.clearRect(0, 0, width, height)
 
   // draw background
