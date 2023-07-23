@@ -117,6 +117,10 @@ function render(ctx: CanvasRenderingContext2D) {
   ctx.save()
   ctx.clearRect(0, 0, width, height)
 
+  // draw background
+  ctx.fillStyle = options.background
+  ctx.fillRect(0, 0, width, height)
+
   // draw title
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
@@ -125,10 +129,6 @@ function render(ctx: CanvasRenderingContext2D) {
   ctx.fillText(options.title, width / 2, 55) // FIXME: hard-coded value
 
   ctx.translate(originX, originY)
-
-  // draw background
-  ctx.fillStyle = options.background
-  ctx.fillRect(0, 0, boxWidth, -boxHeight)
 
   drawAxes(ctx)
 

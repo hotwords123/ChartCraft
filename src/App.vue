@@ -61,8 +61,8 @@ function onCreate(index: number): DataItem {
 
 const options = ref<ChartOptions>({
   title: 'My Chart',
-  width: 640,
-  height: 480,
+  width: 800,
+  height: 600,
   background: '#f7f7f7',
   axes: {
     color: '#a5bce4',
@@ -134,7 +134,7 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
                   <n-input v-model:value="value.x" type="text" class="input-x" placeholder="x" />
                   <n-input-number
                     :value="value.y"
-                    @update:value="value => onUpdateY(index, value)"
+                    @update:value="(value) => onUpdateY(index, value)"
                     class="input-y"
                     placeholder="y"
                   />
