@@ -161,6 +161,8 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
               @confirm="applyYearFilter"
               @clear="clearYearFilter"
               type="yearrange"
+              start-placeholder="起始年份"
+              end-placeholder="结束年份"
               clearable
               class="year-filter"
             />
