@@ -130,6 +130,10 @@ function render(ctx: CanvasRenderingContext2D) {
 
   ctx.translate(originX, originY)
 
+  // draw box background
+  ctx.fillStyle = options.boxBackground
+  ctx.fillRect(0, 0, boxWidth, -boxHeight)
+
   drawAxes(ctx)
 
   if (options.barChart.visible) {

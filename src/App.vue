@@ -61,9 +61,10 @@ function onCreate(index: number): DataItem {
 
 const options = ref<ChartOptions>({
   title: 'My Chart',
-  width: 800,
-  height: 600,
-  background: '#f7f7f7',
+  width: 640,
+  height: 480,
+  background: '#fafafa',
+  boxBackground: '#f7f7f7',
   axes: {
     color: '#a5bce4',
   },

@@ -6,6 +6,7 @@ export interface ChartOptions {
   width: number
   height: number
   background: string
+  boxBackground: string
   axes: {
     color: string
   }
