@@ -200,8 +200,8 @@ function render(ctx: CanvasRenderingContext2D) {
 
   ctx.save()
   // // 获取缩放中心
-  const centerX = translateRef.value.x
-  const centerY = translateRef.value.y
+  const centerX = translateRef.value.x - 100
+  const centerY = translateRef.value.y - 100
 
   // // 平移到缩放中心
   ctx.translate(centerX, centerY)
