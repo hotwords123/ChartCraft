@@ -21,7 +21,7 @@ import {
 } from 'naive-ui'
 import MyChart from './components/MyChart.vue'
 import type { ChartDataItem, ChartOptions } from './chart'
-import { DASH_PATTERNS } from './chart'
+import { DASH_PATTERNS, FONT_FAMILIES } from './chart'
 
 /* chart data */
 
@@ -120,9 +120,21 @@ const options = ref<ChartOptions>({
     },
   },
   text: {
-    font: '14px "Segoe UI", Arial, sans-serif',
-    titleFont: '24px "Segoe UI", Arial, sans-serif',
-    fillStyle: '#222',
+    title: {
+      family: 'Segoe UI',
+      size: 24,
+      fillStyle: '#222',
+    },
+    ticks: {
+      family: 'Segoe UI',
+      size: 14,
+      fillStyle: '#222',
+    },
+    labels: {
+      family: 'Segoe UI',
+      size: 14,
+      fillStyle: '#222',
+    },
   },
 })
 
@@ -144,6 +156,11 @@ const chartHeight = useNonNullNumber(options.value, 'height')
 const lineChartLineWidth = useNonNullNumber(options.value.lineChart, 'lineWidth')
 
 const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, value: name }))
+const TEXT_KEY_MAP = {
+  title: '标题',
+  ticks: '刻度',
+  labels: '标签',
+}
 </script>
 
 <template>
@@ -225,6 +242,23 @@ const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, va
               <n-form-item-gi :span="8" label="线条类型">
                 <n-select v-model:value="options.lineChart.lineDash" :options="DASH_OPTIONS" />
               </n-form-item-gi>
+            </n-grid>
+          </n-form>
+        </n-tab-pane>
+        <n-tab-pane name="text" tab="文本">
+          <n-form label-placement="top" class="padding">
+            <n-grid :cols="24" :x-gap="12">
+              <template v-for="(fontOptions, key) in options.text" :key="key">
+                <n-form-item-gi :span="8" :label="TEXT_KEY_MAP[key] + '字体'">
+                  <n-select v-model:value="fontOptions.family" :options="FONT_FAMILIES" />
+                </n-form-item-gi>
+                <n-form-item-gi :span="8" :label="TEXT_KEY_MAP[key] + '颜色'">
+                  <n-color-picker v-model:value="fontOptions.fillStyle" :show-alpha="false" />
+                </n-form-item-gi>
+                <n-form-item-gi :span="8" :label="TEXT_KEY_MAP[key] + '字体大小'">
+                  <n-input-number v-model:value="fontOptions.size" :min="12" :max="36" :step="1" />
+                </n-form-item-gi>
+              </template>
             </n-grid>
           </n-form>
         </n-tab-pane>

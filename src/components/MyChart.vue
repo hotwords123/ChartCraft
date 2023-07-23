@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
-import { type ChartData, type ChartOptions, DASH_PATTERNS } from '@/chart'
+import { type ChartData, type ChartOptions, DASH_PATTERNS, type FontOptions } from '@/chart'
 
 const props = defineProps<{
   data: ChartData
@@ -174,6 +174,12 @@ function binarySearchMin(
 
 /* ==== render ==== */
 
+function applyFontOptions(ctx: CanvasRenderingContext2D, fontOptions: FontOptions) {
+  const { family, size, fillStyle } = fontOptions
+  ctx.font = `${size}px ${family}`
+  ctx.fillStyle = fillStyle
+}
+
 function render(ctx: CanvasRenderingContext2D) {
   const { options } = props
   const { width, height } = options
@@ -202,7 +208,7 @@ function render(ctx: CanvasRenderingContext2D) {
 
   // 平移回来
   ctx.translate(-centerX, -centerY)
-  
+
   ctx.clearRect(0, 0, width, height)
 
   // draw background
@@ -212,8 +218,7 @@ function render(ctx: CanvasRenderingContext2D) {
   // draw title
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
-  ctx.font = options.text.titleFont
-  ctx.fillStyle = options.text.fillStyle
+  applyFontOptions(ctx, options.text.title)
   ctx.fillText(options.title, originX + boxWidth / 2, (height - originY) * 1.2, originX + boxWidth / 2)
 
   ctx.translate(originX, originY)
@@ -263,8 +268,7 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
   // draw x-axis labels
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
-  ctx.font = options.text.font
-  ctx.fillStyle = options.text.fillStyle
+  applyFontOptions(ctx, options.text.ticks)
   for (let i of xTickIndices) {
     ctx.fillText(`${data[i][0]}`, (i + 0.5) * stepX, 8)
   }
@@ -309,7 +313,7 @@ function drawBarChart(ctx: CanvasRenderingContext2D) {
     ctx.fillRect((i + 0.25) * stepX, 0, 0.5 * stepX, -y * barStepY)
 
     // draw bar value
-    ctx.fillStyle = options.text.fillStyle
+    applyFontOptions(ctx, options.text.labels)
     ctx.fillText(`${y}`, (i + 0.5) * stepX, -y * barStepY - 5)
   })
 }
@@ -365,9 +369,9 @@ function drawLineChart(ctx: CanvasRenderingContext2D) {
     ctx.stroke()
 
     // draw marker value
-    ctx.fillStyle = options.text.fillStyle
     ctx.textAlign = 'center'
     ctx.textBaseline = 'bottom'
+    applyFontOptions(ctx, options.text.labels)
     ctx.fillText(`${y.toFixed(0)}%`, x0, y0 - 15)
   })
 
