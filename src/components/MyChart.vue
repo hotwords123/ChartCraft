@@ -28,6 +28,7 @@ onMounted(() => {
     if (event.deltaY < 0) {
       // 向上滚动时增加缩放级别
       zoomRef.value *= 1.01
+      zoomRef.value = Math.min(1.05, zoomRef.value)
     } else {
       // 向下滚动时减少缩放级别
       zoomRef.value /= 1.01
