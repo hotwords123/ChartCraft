@@ -364,9 +364,22 @@ function drawLineChart(ctx: CanvasRenderingContext2D) {
       case 'square':
         ctx.rect(x0 - size, y0 - size, 2 * size, 2 * size)
         break
+      case 'triangle':
+        ctx.moveTo(x0, y0 - size)
+        ctx.lineTo(x0 - size, y0 + size)
+        ctx.lineTo(x0 + size, y0 + size)
+        ctx.closePath()
+        break
+      case 'diamond':
+        ctx.moveTo(x0, y0 - size)
+        ctx.lineTo(x0 - size, y0)
+        ctx.lineTo(x0, y0 + size)
+        ctx.lineTo(x0 + size, y0)
+        ctx.closePath()
+        break
     }
     ctx.fill()
-    ctx.stroke()
+    if (lineWidth > 0) ctx.stroke()
 
     // draw marker value
     ctx.textAlign = 'center'

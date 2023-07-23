@@ -20,7 +20,7 @@ export interface ChartOptions {
     lineWidth: number
     lineDash: DashPattern | number[]
     marker: {
-      shape: 'circle' | 'square'
+      shape: 'circle' | 'square' | 'triangle' | 'diamond'
       size: number
       fillStyle: string
       strokeStyle: string
@@ -54,6 +54,13 @@ export const DASH_PATTERNS = {
   dotted: [2, 5],
   dashDotted: [5, 5, 2, 5],
 }
+
+export const MARKER_SHAPE = [
+  { label: '圆形', value: 'circle' },
+  { label: '矩形', value: 'square' },
+  { label: '三角形', value: 'triangle' },
+  { label: '菱形', value: 'diamond' },
+]
 
 export const FONT_FAMILIES = [
   { label: 'Arial', value: 'Arial' },

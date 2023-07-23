@@ -21,7 +21,7 @@ import {
 } from 'naive-ui'
 import MyChart from './components/MyChart.vue'
 import type { ChartDataItem, ChartOptions } from './chart'
-import { DASH_PATTERNS, FONT_FAMILIES } from './chart'
+import { DASH_PATTERNS, FONT_FAMILIES, MARKER_SHAPE } from './chart'
 
 /* chart data */
 
@@ -116,7 +116,7 @@ const options = ref<ChartOptions>({
       size: 5,
       fillStyle: '#6096e6',
       strokeStyle: '#5682c3',
-      lineWidth: 1.5,
+      lineWidth: 1.6,
     },
   },
   text: {
@@ -241,6 +241,37 @@ const TEXT_KEY_MAP = {
               </n-form-item-gi>
               <n-form-item-gi :span="8" label="线条类型">
                 <n-select v-model:value="options.lineChart.lineDash" :options="DASH_OPTIONS" />
+              </n-form-item-gi>
+              <n-form-item-gi :span="8" label="标记颜色">
+                <n-color-picker
+                  v-model:value="options.lineChart.marker.fillStyle"
+                  :show-alpha="false"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="8" label="标记大小">
+                <n-input-number
+                  v-model:value="options.lineChart.marker.size"
+                  :min="1"
+                  :max="10"
+                  :step="0.5"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="8" label="标记形状">
+                <n-select v-model:value="options.lineChart.marker.shape" :options="MARKER_SHAPE" />
+              </n-form-item-gi>
+              <n-form-item-gi :span="8" label="标记描边颜色">
+                <n-color-picker
+                  v-model:value="options.lineChart.marker.strokeStyle"
+                  :show-alpha="false"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi :span="8" label="标记描边粗细">
+                <n-input-number
+                  v-model:value="options.lineChart.marker.lineWidth"
+                  :min="0"
+                  :max="3"
+                  :step="0.2"
+                />
               </n-form-item-gi>
             </n-grid>
           </n-form>
