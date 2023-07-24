@@ -243,12 +243,12 @@ function render(ctx: CanvasRenderingContext2D) {
 
   // draw title
   ctx.textAlign = 'center'
-  ctx.textBaseline = 'bottom'
+  ctx.textBaseline = 'middle'
   applyFontOptions(ctx, options.text.title)
   ctx.fillText(
     options.title,
     originX + boxWidth / 2,
-    (height - originY) * 1.2,
+    (originY - boxHeight) * 0.5,
     originX + boxWidth / 2,
   )
 
