@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
+import { onMounted, ref, watch, nextTick } from 'vue'
 import { type ChartData, type ChartOptions, DASH_PATTERNS, type FontOptions } from '@/chart'
 import TickLocator from '@/TickLocator'
 
@@ -12,8 +12,6 @@ const props = defineProps<{
 
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 let ctx: CanvasRenderingContext2D | null = null
-const zoomRef = ref(1)
-const translateRef = ref({ x: 0, y: 0 })
 
 onMounted(() => {
   const canvas = canvasRef.value
@@ -24,36 +22,6 @@ onMounted(() => {
 
   resizeCanvas()
   render(ctx)
-
-  const handleMouseMove = (event: MouseEvent) => {
-    // 更新鼠标的位置
-    translateRef.value = { x: event.clientX, y: event.clientY }
-  }
-
-  // 添加事件监听器
-  const handleWheel = (event: WheelEvent) => {
-    if (event.deltaY < 0) {
-      // 向上滚动时增加缩放级别
-      zoomRef.value *= 1.01
-    } else {
-      // 向下滚动时减少缩放级别
-      zoomRef.value /= 1.01
-    }
-
-    // 重新渲染图表
-    if (ctx) {
-      render(ctx)
-    }
-  }
-
-  canvas.addEventListener('mousemove', handleMouseMove)
-  canvas.addEventListener('wheel', handleWheel)
-
-  // 在 onUnmounted 中移除事件监听器
-  onUnmounted(() => {
-    canvas.removeEventListener('mousemove', handleMouseMove)
-    canvas.removeEventListener('wheel', handleWheel)
-  })
 })
 
 watch(props, () => {
@@ -175,6 +143,71 @@ function binarySearchMin(
   return lbound
 }
 
+/* ==== zoom ==== */
+
+// the transform matrix is:
+// [scale, 0, translateX]
+// [0, scale, translateY]
+// [0, 0, 1]
+
+let scale = 1
+let translateX = 0
+let translateY = 0
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value))
+}
+
+function clampTransform() {
+  const { width, height } = props.options
+  const borderX = width - width * scale
+  const borderY = height - height * scale
+  if (scale < 1) {
+    translateX = clamp(translateX, 0, borderX)
+    translateY = clamp(translateY, 0, borderY)
+  } else {
+    translateX = clamp(translateX, borderX, 0)
+    translateY = clamp(translateY, borderY, 0)
+  }
+}
+
+function mouseMoveHandler(evt: MouseEvent) {
+  if (!ctx) return
+
+  const { movementX, movementY, buttons } = evt
+  if (buttons & 1) {
+    translateX += movementX
+    translateY += movementY
+    clampTransform()
+    render(ctx)
+  }
+}
+
+function wheelHandler(evt: WheelEvent) {
+  if (!ctx) return
+
+  const { offsetX, offsetY, deltaY } = evt
+
+  let newScale = deltaY < 0 ? scale + 0.05 : scale - 0.05
+  newScale = Math.max(0.25, Math.min(4, newScale))
+
+  if (Math.abs(newScale - 1) < 1e-3) newScale = 1
+
+  // invariant: the point (offsetX, offsetY) is fixed after zooming
+  // offsetX = x * scale + translateX = x * scale' + translateX'
+  // offsetY = y * scale + translateY = y * scale' + translateY'
+
+  const multiplier = newScale / scale
+  scale = newScale
+
+  // solve for translateX' and translateY'
+  translateX = offsetX - (offsetX - translateX) * multiplier
+  translateY = offsetY - (offsetY - translateY) * multiplier
+  clampTransform()
+
+  render(ctx)
+}
+
 /* ==== render ==== */
 
 function applyFontOptions(ctx: CanvasRenderingContext2D, fontOptions: FontOptions) {
@@ -199,20 +232,10 @@ function render(ctx: CanvasRenderingContext2D) {
   calculateLayout(ctx)
 
   ctx.save()
-  // // 获取缩放中心
-  const centerX = translateRef.value.x - 100
-  const centerY = translateRef.value.y - 100
-
-  // // 平移到缩放中心
-  ctx.translate(centerX, centerY)
-
-  // // 根据缩放级别进行缩放
-  ctx.scale(zoomRef.value, zoomRef.value)
-
-  // 平移回来
-  ctx.translate(-centerX, -centerY)
-
   ctx.clearRect(0, 0, width, height)
+
+  // apply transform
+  ctx.transform(scale, 0, 0, scale, translateX, translateY)
 
   // draw background
   ctx.fillStyle = options.background
@@ -246,6 +269,40 @@ function render(ctx: CanvasRenderingContext2D) {
   }
 
   ctx.restore()
+
+  // draw zoom indicator
+  drawZoomIndicator(ctx)
+}
+
+function drawZoomIndicator(ctx: CanvasRenderingContext2D) {
+  const FONT_SIZE = 12
+  const INDICATOR_X = 10
+  const INDICATOR_Y = 10
+  const PADDING_X = 8
+  const PADDING_Y = 6
+
+  if (scale === 1) return
+
+  ctx.font = `${FONT_SIZE}px sans-serif`
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+
+  const text = `${Math.round(scale * 100)}%`
+  const textMetrics = ctx.measureText(text)
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'
+  ctx.beginPath()
+  ctx.roundRect(
+    INDICATOR_X,
+    INDICATOR_Y,
+    2 * PADDING_X + textMetrics.width,
+    2 * PADDING_Y + textMetrics.actualBoundingBoxDescent,
+    4,
+  )
+  ctx.fill()
+
+  ctx.fillStyle = 'white'
+  ctx.fillText(text, INDICATOR_X + PADDING_X, INDICATOR_Y + PADDING_Y)
 }
 
 function drawAxes(ctx: CanvasRenderingContext2D) {
@@ -401,7 +458,11 @@ function drawLineChart(ctx: CanvasRenderingContext2D) {
 
 <template>
   <div class="container">
-    <canvas ref="canvasRef"></canvas>
+    <canvas
+      ref="canvasRef"
+      @mousemove.prevent="mouseMoveHandler"
+      @wheel.prevent="wheelHandler"
+    ></canvas>
   </div>
 </template>
 
