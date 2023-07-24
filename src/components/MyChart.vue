@@ -392,6 +392,7 @@ function drawLineChart(ctx: CanvasRenderingContext2D) {
   // draw lines
   ctx.strokeStyle = options.lineChart.strokeStyle
   ctx.lineWidth = options.lineChart.lineWidth
+  ctx.lineJoin = 'round'
   if (Array.isArray(options.lineChart.lineDash)) {
     ctx.setLineDash(options.lineChart.lineDash)
   } else {
