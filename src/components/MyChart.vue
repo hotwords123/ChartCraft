@@ -68,7 +68,12 @@ let boxWidth: number
 let boxHeight: number
 
 let stepX: number
+
+let barBoxHeight: number
+let barOffsetY: number
 let barStepY: number
+
+let lineBoxHeight: number
 let lineOffsetY: number
 let lineStepY: number
 
@@ -93,7 +98,7 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
     const width = step * stepX
     for (let i = 0; i < data.length; i += step) {
       const labelWidth = ctx.measureText(data[i][0]).width
-      if (labelWidth + 20 > 0.8 * width) {
+      if (labelWidth + 15 > 0.9 * width) {
         return false
       }
     }
@@ -107,17 +112,28 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
   }
 
   // for bar chart
+  const yMin = Math.min(...data.map(([, y]) => y))
   const yMax = Math.max(...data.map(([, y]) => y))
 
   const locator = new TickLocator()
-  // TODO: ticks start from non-zero
-  yTicks = locator.getTicks(0, yMax)
-  barStepY = boxHeight / (1.4 * yTicks[yTicks.length - 1])
+  if (yMin < 0.6 * yMax) {
+    locator.maxTicks = 10
+    yTicks = locator.getTicks(0, yMax)
+    barOffsetY = 0
+  } else {
+    locator.maxTicks = 7
+    yTicks = locator.getTicks(yMin, yMax)
+    barOffsetY = 0.2 * boxHeight
+  }
+
+  barBoxHeight = 0.75 * boxHeight
+  barStepY = (barBoxHeight - barOffsetY) / (yTicks[yTicks.length - 1] - yTicks[0])
 
   // for line chart
   const maxPercentage = Math.max(...percentages)
-  lineOffsetY = 80
-  lineStepY = (boxHeight - lineOffsetY) / (1.2 * maxPercentage)
+  lineOffsetY = 0.25 * boxHeight
+  lineBoxHeight = boxHeight - 50 - lineOffsetY
+  lineStepY = lineBoxHeight / maxPercentage
 }
 
 /**
@@ -141,6 +157,22 @@ function binarySearchMin(
     }
   }
   return lbound
+}
+
+/**
+ * Returns the y coordinate of the given bar chart value.
+ * @param y bar chart value
+ */
+function barChartY(y: number): number {
+  return -barOffsetY - (y - yTicks[0]) * barStepY
+}
+
+/**
+ * Returns the y coordinate of the given line chart value.
+ * @param y line chart value (percentage)
+ */
+function lineChartY(y: number): number {
+  return -lineOffsetY - y * lineStepY
 }
 
 /* ==== zoom ==== */
@@ -323,6 +355,15 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
   // draw y-axis
   ctx.beginPath()
   ctx.moveTo(0, 0)
+  if (barOffsetY > 0) {
+    ctx.setLineDash([5])
+    ctx.lineTo(0, -barOffsetY + 15)
+    ctx.stroke()
+
+    ctx.setLineDash([])
+    ctx.beginPath()
+    ctx.moveTo(0, -barOffsetY + 15)
+  }
   ctx.lineTo(0, -boxHeight - 10)
   ctx.lineTo(-4, -boxHeight)
   ctx.lineTo(4, -boxHeight)
@@ -345,8 +386,11 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
   // draw y-axis labels
   ctx.textAlign = 'right'
   ctx.textBaseline = 'middle'
+  if (barOffsetY > 0) {
+    ctx.fillText('0', -8, 0)
+  }
   for (let y of yTicks) {
-    ctx.fillText(`${y}`, -8, -y * barStepY)
+    ctx.fillText(`${y}`, -8, barChartY(y))
   }
 
   // draw y-axis title
@@ -364,7 +408,7 @@ function drawBarChart(ctx: CanvasRenderingContext2D) {
     barFillStyle = options.barChart.fillStyle
   } else {
     const { stops } = options.barChart.fillStyle
-    const gradient = ctx.createLinearGradient(0, 0, 0, -boxHeight)
+    const gradient = ctx.createLinearGradient(0, -barOffsetY, 0, -barOffsetY - barBoxHeight)
     for (const { offset, color } of stops) {
       gradient.addColorStop(offset, color)
     }
@@ -374,20 +418,16 @@ function drawBarChart(ctx: CanvasRenderingContext2D) {
   data.forEach(([, y], i) => {
     // draw bar
     ctx.fillStyle = barFillStyle
-    ctx.fillRect((i + 0.25) * stepX, 0, 0.5 * stepX, -y * barStepY)
+    ctx.fillRect((i + 0.25) * stepX, 0, 0.5 * stepX, barChartY(y))
 
     // draw bar value
     applyFontOptions(ctx, options.text.labels)
-    ctx.fillText(`${y}`, (i + 0.5) * stepX, -y * barStepY - 5)
+    ctx.fillText(`${y}`, (i + 0.5) * stepX, barChartY(y) - 5)
   })
 }
 
 function drawLineChart(ctx: CanvasRenderingContext2D) {
   const { options } = props
-
-  // calculate layout
-  ctx.save()
-  ctx.translate(0, -lineOffsetY)
 
   // draw lines
   ctx.strokeStyle = options.lineChart.strokeStyle
@@ -402,7 +442,7 @@ function drawLineChart(ctx: CanvasRenderingContext2D) {
   ctx.beginPath()
   percentages.forEach((y, i) => {
     const x0 = (i + 0.5) * stepX
-    const y0 = -y * lineStepY
+    const y0 = lineChartY(y)
     if (i === 0) {
       ctx.moveTo(x0, y0)
     } else {
@@ -416,7 +456,7 @@ function drawLineChart(ctx: CanvasRenderingContext2D) {
   const { shape, size, fillStyle, strokeStyle, lineWidth } = options.lineChart.marker
   percentages.forEach((y, i) => {
     const x0 = (i + 0.5) * stepX
-    const y0 = -y * lineStepY
+    const y0 = lineChartY(y)
 
     ctx.fillStyle = fillStyle
     ctx.strokeStyle = strokeStyle
@@ -452,8 +492,6 @@ function drawLineChart(ctx: CanvasRenderingContext2D) {
     applyFontOptions(ctx, options.text.labels)
     ctx.fillText(`${y.toFixed(0)}%`, x0, y0 - 15)
   })
-
-  ctx.restore()
 }
 </script>
 
