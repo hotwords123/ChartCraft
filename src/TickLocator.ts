@@ -13,6 +13,9 @@ export default class TickLocator {
    * @returns the selected ticks
    */
   getTicks(vmin: number, vmax: number): number[] {
+    if (vmin > vmax) throw new Error('vmin must be less than or equal to vmax')
+    if (vmin === vmax) return [vmin]
+
     const bestStep = this.getBestStep(vmin, vmax)
     const lbound = Math.floor(vmin / bestStep + TOLERANCE)
     const ubound = Math.ceil(vmax / bestStep - TOLERANCE)

@@ -2,6 +2,7 @@
 import { onMounted, ref, watch, nextTick } from 'vue'
 import { type ChartData, type ChartOptions, DASH_PATTERNS, type FontOptions } from '@/chart'
 import TickLocator from '@/TickLocator'
+import { formatFloat } from '@/util'
 
 const props = defineProps<{
   data: ChartData
@@ -51,6 +52,7 @@ let percentages: number[] = []
 
 function prepareData() {
   const { data } = props
+  if (data.length === 0) return
 
   // generate line chart data points
   const total = data.reduce((sum, [, y]) => sum + y, 0)
@@ -90,6 +92,8 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
   boxWidth = width - 70 - originX
   boxHeight = originY - 80
 
+  if (data.length === 0) return
+
   // calculate step size
   stepX = boxWidth / data.length
 
@@ -116,7 +120,7 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
   const yMax = Math.max(...data.map(([, y]) => y))
 
   const locator = new TickLocator()
-  if (yMin < 0.6 * yMax) {
+  if (yMin === yMax || yMin < 0.6 * yMax) {
     locator.maxTicks = 10
     yTicks = locator.getTicks(0, yMax)
     barOffsetY = 0
@@ -290,14 +294,20 @@ function render(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = options.boxBackground
   ctx.fillRect(0, 0, boxWidth, -boxHeight)
 
-  drawAxes(ctx)
-
-  if (options.barChart.visible) {
-    drawBarChart(ctx)
-  }
-
-  if (options.lineChart.visible) {
-    drawLineChart(ctx)
+  if (props.data.length === 0) {
+    // no data is available
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    applyFontOptions(ctx, options.text.labels)
+    ctx.fillText('No data', boxWidth / 2, -boxHeight / 2)
+  } else {
+    drawAxes(ctx)
+    if (options.barChart.visible) {
+      drawBarChart(ctx)
+    }
+    if (options.lineChart.visible) {
+      drawLineChart(ctx)
+    }
   }
 
   ctx.restore()
@@ -390,7 +400,7 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
     ctx.fillText('0', -8, 0)
   }
   for (let y of yTicks) {
-    ctx.fillText(`${y}`, -8, barChartY(y))
+    ctx.fillText(`${formatFloat(y)}`, -8, barChartY(y))
   }
 
   // draw y-axis title
@@ -422,7 +432,7 @@ function drawBarChart(ctx: CanvasRenderingContext2D) {
 
     // draw bar value
     applyFontOptions(ctx, options.text.labels)
-    ctx.fillText(`${y}`, (i + 0.5) * stepX, barChartY(y) - 5)
+    ctx.fillText(`${formatFloat(y)}`, (i + 0.5) * stepX, barChartY(y) - 5)
   })
 }
 
