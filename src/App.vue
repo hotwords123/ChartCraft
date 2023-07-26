@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import {
+  NButton,
   NCard,
   NTabs,
   NTabPane,
@@ -18,6 +19,8 @@ import {
   NDynamicInput,
   NScrollbar,
   NDatePicker,
+  NUpload,
+  type UploadFileInfo
 } from 'naive-ui'
 import MyChart from './components/MyChart.vue'
 import type { ChartDataItem, ChartOptions } from './chart'
@@ -161,6 +164,23 @@ const TEXT_KEY_MAP = {
   ticks: '刻度',
   labels: '标签',
 }
+
+function beforeUpload({ file }: { file: UploadFileInfo }) {
+  if (file.file?.type !== 'application/json') {
+    return false
+  }
+  file.file.text().then((text) => {
+    try {
+      const json = JSON.parse(text) as [string, number][]
+      data.value = json.map(([x, y]) => ({ x, y, checked: true }))
+      console.log(json)
+    } catch (err) {
+      console.error(err)
+    }
+  })
+  return true
+}
+
 </script>
 
 <template>
@@ -184,6 +204,11 @@ const TEXT_KEY_MAP = {
               class="year-filter"
             />
           </n-input-group>
+          <n-upload
+            action="https://www.mocky.io/v2/5e4bafc63100007100d8b70f"
+            @before-upload="beforeUpload">
+            <n-button>导入文件</n-button>
+          </n-upload>
           <n-scrollbar class="scroll">
             <n-dynamic-input v-model:value="data" :on-create="onCreate" class="padding">
               <template #create-button-default>添加数据</template>
@@ -229,7 +254,8 @@ const TEXT_KEY_MAP = {
             </n-grid>
           </n-form>
         </n-tab-pane>
-        <n-tab-pane name="bar-chart" tab="柱状图"> </n-tab-pane>
+        <n-tab-pane name="bar-chart" tab="柱状图">
+        </n-tab-pane>
         <n-tab-pane name="line-chart" tab="折线图">
           <n-form label-placement="top" class="padding">
             <n-grid :cols="24" :x-gap="12">

@@ -413,16 +413,32 @@ function drawBarChart(ctx: CanvasRenderingContext2D) {
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
 
-  let barFillStyle: string | CanvasGradient
-  if (typeof options.barChart.fillStyle === 'string') {
-    barFillStyle = options.barChart.fillStyle
-  } else {
-    const { stops } = options.barChart.fillStyle
-    const gradient = ctx.createLinearGradient(0, -barOffsetY, 0, -barOffsetY - barBoxHeight)
-    for (const { offset, color } of stops) {
-      gradient.addColorStop(offset, color)
+  let barFillStyle: string | CanvasGradient | CanvasPattern
+
+  if (options.barChart.fillType === 'pattern') {
+    if (typeof options.barChart.fillStyle === 'string') {
+      const img = new Image()
+      img.src = options.barChart.fillStyle
+      img.onload = function() {
+        const pattern = ctx.createPattern(img, 'repreat')
+        if (pattern) {
+          barFillStyle = pattern
+        } else {
+          console.error('Failed to create pattern')
+        }
+      }
     }
-    barFillStyle = gradient
+  } else {
+    if (typeof options.barChart.fillStyle === 'string') {
+      barFillStyle = options.barChart.fillStyle
+    } else {
+      const { stops } = options.barChart.fillStyle
+      const gradient = ctx.createLinearGradient(0, -barOffsetY, 0, -barOffsetY - barBoxHeight)
+      for (const { offset, color } of stops) {
+        gradient.addColorStop(offset, color)
+      }
+      barFillStyle = gradient
+    }
   }
 
   data.forEach(([, y], i) => {
