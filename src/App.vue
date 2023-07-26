@@ -20,11 +20,15 @@ import {
   NScrollbar,
   NDatePicker,
   NUpload,
-  type UploadFileInfo
+  NRadioGroup,
+  NSpace,
+  NRadioButton,
+  type UploadFileInfo,
 } from 'naive-ui'
 import MyChart from './components/MyChart.vue'
 import type { ChartDataItem, ChartOptions } from './chart'
-import { DASH_PATTERNS, FONT_FAMILIES, MARKER_SHAPE } from './chart'
+import { DASH_PATTERNS, FONT_FAMILIES, MARKER_SHAPE, FILL_TYPES } from './chart'
+import { loadTextures, type TextureData } from './texture'
 
 /* chart data */
 
@@ -181,6 +185,70 @@ function beforeUpload({ file }: { file: UploadFileInfo }) {
   return true
 }
 
+const PATTERNS = ref<TextureData[]>([])
+loadTextures().then((textures) => {
+  PATTERNS.value = textures
+})
+
+const patternOptions = computed(() => {
+  return PATTERNS.value.map((texture) => ({
+    label: texture.label,
+    value: texture.id,
+  }))
+})
+
+let barFillType = ref('gradient')
+let barSingleColor = ref('#6495ed')
+let barGradientColor = ref([
+  { offset: 0, color: '#6096e6' },
+  { offset: 1, color: '#81eeaa' },
+])
+let barPatternSrc = ref('')
+
+function onUpdateChecked(value: string) {
+  if (value === 'single') {
+    options.value.barChart.fillStyle = barSingleColor.value
+  } else if (value === 'gradient') {
+    options.value.barChart.fillStyle = {
+      stops: barGradientColor.value,
+    }
+  } else if (value === 'pattern') {
+    const texture = PATTERNS.value.find((texture) => texture.id === barPatternSrc.value)
+    if (texture) {
+      options.value.barChart.fillStyle = texture.img
+    }
+  }
+}
+
+function onCreateGradient() {
+  return {
+    color: '#6096e6',
+    offset: 0,
+  }
+}
+
+function onUpdateColor() {
+  if (barFillType.value === 'single') {
+    options.value.barChart.fillStyle = barSingleColor.value
+  }
+}
+
+function onUpdateGradient() {
+  if (barFillType.value === 'gradient') {
+    options.value.barChart.fillStyle = {
+      stops: barGradientColor.value,
+    }
+  }
+}
+
+function onUpdatePattern() {
+  if (barFillType.value === 'pattern') {
+    const texture = PATTERNS.value.find((texture) => texture.id === barPatternSrc.value)
+    if (texture) {
+      options.value.barChart.fillStyle = texture.img
+    }
+  }
+}
 </script>
 
 <template>
@@ -206,7 +274,8 @@ function beforeUpload({ file }: { file: UploadFileInfo }) {
           </n-input-group>
           <n-upload
             action="https://www.mocky.io/v2/5e4bafc63100007100d8b70f"
-            @before-upload="beforeUpload">
+            @before-upload="beforeUpload"
+          >
             <n-button>导入文件</n-button>
           </n-upload>
           <n-scrollbar class="scroll">
@@ -255,6 +324,61 @@ function beforeUpload({ file }: { file: UploadFileInfo }) {
           </n-form>
         </n-tab-pane>
         <n-tab-pane name="bar-chart" tab="柱状图">
+          <n-radio-group
+            v-model:value="barFillType"
+            @update:value="onUpdateChecked"
+            name="radiogroup"
+          >
+            <n-space>
+              <n-radio-button v-for="item in FILL_TYPES" :key="item.value" :value="item.value">
+                {{ item.label }}
+              </n-radio-button>
+            </n-space>
+          </n-radio-group>
+          <n-form label-placement="top" class="padding">
+            <n-grid :cols="24" :x-gap="12">
+              <n-form-item-gi v-if="barFillType === 'single'" :span="9">
+                <n-color-picker
+                  v-model:value="barSingleColor"
+                  :show-alpha="false"
+                  @update:value="onUpdateColor"
+                />
+              </n-form-item-gi>
+              <n-form-item-gi v-if="barFillType === 'gradient'" :span="15">
+                <n-dynamic-input
+                  v-model:value="barGradientColor"
+                  :on-create="onCreateGradient"
+                  class="padding"
+                >
+                  <template #create-button-default>添加渐变</template>
+                  <template #default="{ value }">
+                    <div style="display: flex; align-items: center; width: 100%">
+                      <n-color-picker
+                        v-model:value="value.color"
+                        :show-alpha="false"
+                        @update:value="onUpdateGradient"
+                      />
+                      <n-input-number
+                        v-model:value="value.offset"
+                        :min="0"
+                        :max="1"
+                        :step="0.1"
+                        @update:value="onUpdateGradient"
+                      />
+                    </div>
+                  </template>
+                </n-dynamic-input>
+              </n-form-item-gi>
+              <n-form-item-gi v-if="barFillType === 'pattern'" :span="9">
+                <n-select
+                  v-model:value="barPatternSrc"
+                  :options="patternOptions"
+                  @update:value="onUpdatePattern"
+                >
+                </n-select>
+              </n-form-item-gi>
+            </n-grid>
+          </n-form>
         </n-tab-pane>
         <n-tab-pane name="line-chart" tab="折线图">
           <n-form label-placement="top" class="padding">

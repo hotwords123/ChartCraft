@@ -12,7 +12,7 @@ export interface ChartOptions {
   }
   barChart: {
     visible: boolean
-    fillStyle: string | GradientOptions
+    fillStyle: string | GradientOptions | HTMLImageElement
   }
   lineChart: {
     visible: boolean
@@ -99,4 +99,10 @@ export const FONT_FAMILIES = [
   { label: '华文中宋', value: 'STZhongsong' },
   { label: '华文行楷', value: 'STXingkai' },
   { label: '华文新魏', value: 'STXinwei' },
+]
+
+export const FILL_TYPES = [
+  { label: '纯色', value: 'single' },
+  { label: '渐变', value: 'gradient' },
+  { label: '图案', value: 'pattern' },
 ]
