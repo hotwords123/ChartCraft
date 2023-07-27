@@ -433,11 +433,6 @@ function onCreateGradient() {
             </n-grid>
           </n-form>
         </n-tab-pane>
-        <n-tab-pane name="JSON" tab="JSON">
-          <n-scrollbar class="scroll">
-            <pre>{{ JSON.stringify(options, null, 2) }}</pre>
-          </n-scrollbar>
-        </n-tab-pane>
       </n-tabs>
     </n-card>
   </main>
