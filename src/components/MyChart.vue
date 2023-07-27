@@ -431,7 +431,7 @@ function drawBarChart(ctx: CanvasRenderingContext2D) {
     }
   } else {
     const { stops } = options.barChart.fillStyle
-    const gradient = ctx.createLinearGradient(0, -barOffsetY, 0, -barOffsetY - barBoxHeight)
+    const gradient = ctx.createLinearGradient(0, -barOffsetY, 0, -barBoxHeight)
     for (const { offset, color } of stops) {
       gradient.addColorStop(offset, color)
     }
