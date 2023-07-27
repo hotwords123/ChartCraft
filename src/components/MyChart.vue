@@ -98,6 +98,7 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
   stepX = boxWidth / data.length
 
   // calculate x-axis tick step
+  applyFontOptions(ctx, options.text.ticks)
   const xTickStep = binarySearchMin(1, data.length, (step) => {
     const width = step * stepX
     for (let i = 0; i < data.length; i += step) {
