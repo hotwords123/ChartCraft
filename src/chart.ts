@@ -8,6 +8,9 @@ export interface ChartOptions {
   background: string
   boxBackground: string
   axes: {
+    xTitle: string
+    yTitle: string
+    yUnit: string
     color: string
   }
   barChart: {

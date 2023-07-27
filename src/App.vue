@@ -146,6 +146,9 @@ const options = ref<ChartOptions>({
   background: '#fafafa',
   boxBackground: '#f7f7f7',
   axes: {
+    xTitle: '年份',
+    yTitle: '产量',
+    yUnit: '(万吨)',
     color: '#a5bce4',
   },
   barChart: {

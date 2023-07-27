@@ -391,7 +391,7 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
 
   // draw x-axis title
   ctx.textAlign = 'left'
-  ctx.fillText('Year', boxWidth + 15, 8)
+  ctx.fillText(options.axes.xTitle, boxWidth + 15, 8)
 
   // draw y-axis labels
   ctx.textAlign = 'right'
@@ -404,7 +404,11 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
   }
 
   // draw y-axis title
-  ctx.fillText('Count', -12, -boxHeight)
+  ctx.textBaseline = 'bottom'
+  ctx.fillText(options.axes.yTitle, -12, -boxHeight - 5)
+
+  ctx.textBaseline = 'top'
+  ctx.fillText(options.axes.yUnit, -12, -boxHeight)
 }
 
 function drawBarChart(ctx: CanvasRenderingContext2D) {
