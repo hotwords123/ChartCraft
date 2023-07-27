@@ -19,11 +19,9 @@ import {
   NDynamicInput,
   NScrollbar,
   NDatePicker,
-  NUpload,
   NRadioGroup,
   NSpace,
   NRadioButton,
-  type UploadFileInfo,
 } from 'naive-ui'
 import MyChart from './components/MyChart.vue'
 import type { ChartDataItem, ChartOptions } from './chart'
@@ -91,6 +89,47 @@ function clearYearFilter() {
   for (let item of data.value) {
     item.checked = true
   }
+}
+
+function showImportDialog() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'application/json'
+  input.addEventListener("change", () => {
+    const files = input.files
+    if (files && files.length > 0) {
+      loadDataFile(files[0]).catch((err) => {
+        console.error(err)
+      })
+    }
+  })
+  input.click()
+}
+
+async function loadDataFile(file: File) {
+  if (file.type !== 'application/json')
+    throw new Error("unsupported file type")
+
+  const text = await file.text()
+  const json = JSON.parse(text) as [string, number][]
+
+  data.value = json.map(([x, y]) => ({ x, y, checked: true }))
+}
+
+function showExportDialog() {
+  const json = data.value
+    .filter(({ checked }) => checked)
+    .map(({ x, y }) => [x, y] as [string, number])
+  const content = JSON.stringify(json)
+  const blob = new Blob([content], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'data.json'
+  a.click()
+
+  URL.revokeObjectURL(url)
 }
 
 /* chart options */
@@ -169,22 +208,6 @@ const TEXT_KEY_MAP = {
   labels: '标签',
 }
 
-function beforeUpload({ file }: { file: UploadFileInfo }) {
-  if (file.file?.type !== 'application/json') {
-    return false
-  }
-  file.file.text().then((text) => {
-    try {
-      const json = JSON.parse(text) as [string, number][]
-      data.value = json.map(([x, y]) => ({ x, y, checked: true }))
-      console.log(json)
-    } catch (err) {
-      console.error(err)
-    }
-  })
-  return true
-}
-
 const PATTERNS = ref<TextureData[]>([])
 loadTextures().then((textures) => {
   PATTERNS.value = textures
@@ -260,26 +283,26 @@ function onUpdatePattern() {
     <n-card class="settings" title="图表设置">
       <n-tabs type="line" animated pane-class="pane">
         <n-tab-pane name="data" tab="数据">
-          <n-input-group class="year-filter-container">
-            <n-input-group-label>年份筛选</n-input-group-label>
-            <n-date-picker
-              @confirm="applyYearFilter"
-              @clear="clearYearFilter"
-              type="yearrange"
-              start-placeholder="起始年份"
-              end-placeholder="结束年份"
-              clearable
-              class="year-filter"
-            />
-          </n-input-group>
-          <n-upload
-            action="https://www.mocky.io/v2/5e4bafc63100007100d8b70f"
-            @before-upload="beforeUpload"
-          >
-            <n-button>导入文件</n-button>
-          </n-upload>
+          <div class="padding">
+            <n-input-group class="year-filter-container">
+              <n-input-group-label>年份筛选</n-input-group-label>
+              <n-date-picker
+                @confirm="applyYearFilter"
+                @clear="clearYearFilter"
+                type="yearrange"
+                start-placeholder="起始年份"
+                end-placeholder="结束年份"
+                clearable
+                class="year-filter"
+              />
+            </n-input-group>
+            <n-space>
+              <n-button @click="showImportDialog">导入数据</n-button>
+              <n-button @click="showExportDialog">导出数据</n-button>
+            </n-space>
+          </div>
           <n-scrollbar class="scroll">
-            <n-dynamic-input v-model:value="data" :on-create="onCreate" class="padding">
+            <n-dynamic-input v-model:value="data" @create="onCreate" class="padding">
               <template #create-button-default>添加数据</template>
               <template #default="{ index, value }">
                 <div class="data-item">
@@ -328,6 +351,7 @@ function onUpdatePattern() {
             v-model:value="barFillType"
             @update:value="onUpdateChecked"
             name="radiogroup"
+            class="padding"
           >
             <n-space>
               <n-radio-button v-for="item in FILL_TYPES" :key="item.value" :value="item.value">
@@ -335,24 +359,22 @@ function onUpdatePattern() {
               </n-radio-button>
             </n-space>
           </n-radio-group>
-          <n-form label-placement="top" class="padding">
+          <n-color-picker
+            v-if="barFillType === 'single'"
+            v-model:value="barSingleColor"
+            :show-alpha="false"
+            @update:value="onUpdateColor"
+          />
+          <n-form :show-label="false" class="padding">
             <n-grid :cols="24" :x-gap="12">
-              <n-form-item-gi v-if="barFillType === 'single'" :span="9">
-                <n-color-picker
-                  v-model:value="barSingleColor"
-                  :show-alpha="false"
-                  @update:value="onUpdateColor"
-                />
-              </n-form-item-gi>
-              <n-form-item-gi v-if="barFillType === 'gradient'" :span="15">
+              <n-form-item-gi v-if="barFillType === 'gradient'" :span="16">
                 <n-dynamic-input
                   v-model:value="barGradientColor"
                   :on-create="onCreateGradient"
-                  class="padding"
                 >
                   <template #create-button-default>添加渐变</template>
                   <template #default="{ value }">
-                    <div style="display: flex; align-items: center; width: 100%">
+                    <div class="data-item">
                       <n-color-picker
                         v-model:value="value.color"
                         :show-alpha="false"
@@ -478,7 +500,7 @@ main .settings .pane .padding {
 }
 
 main .settings .pane :deep(.scroll) {
-  max-height: 400px;
+  max-height: 360px;
 }
 
 .year-filter-container {
