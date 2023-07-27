@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watchEffect } from 'vue'
 import {
   NButton,
   NCard,
@@ -25,7 +25,13 @@ import {
 } from 'naive-ui'
 import MyChart from './components/MyChart.vue'
 import type { ChartDataItem, ChartOptions } from './chart'
-import { DASH_PATTERNS, FONT_FAMILIES, MARKER_SHAPE, FILL_TYPES } from './chart'
+import {
+  DASH_PATTERNS,
+  FONT_FAMILIES,
+  MARKER_SHAPE,
+  FILL_TYPES,
+  type GradientOptions,
+} from './chart'
 import { loadTextures, type TextureData } from './texture'
 
 /* chart data */
@@ -95,7 +101,7 @@ function showImportDialog() {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'application/json'
-  input.addEventListener("change", () => {
+  input.addEventListener('change', () => {
     const files = input.files
     if (files && files.length > 0) {
       loadDataFile(files[0]).catch((err) => {
@@ -107,8 +113,7 @@ function showImportDialog() {
 }
 
 async function loadDataFile(file: File) {
-  if (file.type !== 'application/json')
-    throw new Error("unsupported file type")
+  if (file.type !== 'application/json') throw new Error('unsupported file type')
 
   const text = await file.text()
   const json = JSON.parse(text) as [string, number][]
@@ -145,12 +150,7 @@ const options = ref<ChartOptions>({
   },
   barChart: {
     visible: true,
-    fillStyle: {
-      stops: [
-        { offset: 0, color: '#6096e6' },
-        { offset: 1, color: '#81eeaa' },
-      ],
-    },
+    fillStyle: '',
   },
   lineChart: {
     visible: true,
@@ -220,56 +220,42 @@ const patternOptions = computed(() => {
   }))
 })
 
-let barFillType = ref('gradient')
+type BarFillType = 'single' | 'gradient' | 'pattern'
+
+let barFillType = ref<BarFillType>('gradient')
 let barSingleColor = ref('#6495ed')
-let barGradientColor = ref([
+let barGradientColor = ref<GradientOptions['stops']>([
   { offset: 0, color: '#6096e6' },
   { offset: 1, color: '#81eeaa' },
 ])
 let barPatternSrc = ref('')
 
-function onUpdateChecked(value: string) {
-  if (value === 'single') {
-    options.value.barChart.fillStyle = barSingleColor.value
-  } else if (value === 'gradient') {
-    options.value.barChart.fillStyle = {
-      stops: barGradientColor.value,
+watchEffect(() => {
+  const { barChart } = options.value
+
+  switch (barFillType.value) {
+    case 'single': {
+      barChart.fillStyle = barSingleColor.value
+      break
     }
-  } else if (value === 'pattern') {
-    const texture = PATTERNS.value.find((texture) => texture.id === barPatternSrc.value)
-    if (texture) {
-      options.value.barChart.fillStyle = texture.img
+    case 'gradient': {
+      barChart.fillStyle = {
+        stops: barGradientColor.value,
+      }
+      break
+    }
+    case 'pattern': {
+      const texture = PATTERNS.value.find((texture) => texture.id === barPatternSrc.value)
+      if (texture) barChart.fillStyle = texture.img
+      break
     }
   }
-}
+})
 
 function onCreateGradient() {
   return {
     color: '#6096e6',
     offset: 0,
-  }
-}
-
-function onUpdateColor() {
-  if (barFillType.value === 'single') {
-    options.value.barChart.fillStyle = barSingleColor.value
-  }
-}
-
-function onUpdateGradient() {
-  if (barFillType.value === 'gradient') {
-    options.value.barChart.fillStyle = {
-      stops: barGradientColor.value,
-    }
-  }
-}
-
-function onUpdatePattern() {
-  if (barFillType.value === 'pattern') {
-    const texture = PATTERNS.value.find((texture) => texture.id === barPatternSrc.value)
-    if (texture) {
-      options.value.barChart.fillStyle = texture.img
-    }
   }
 }
 </script>
@@ -347,60 +333,42 @@ function onUpdatePattern() {
           </n-form>
         </n-tab-pane>
         <n-tab-pane name="bar-chart" tab="柱状图">
-          <n-radio-group
-            v-model:value="barFillType"
-            @update:value="onUpdateChecked"
-            name="radiogroup"
-            class="padding"
-          >
-            <n-space>
-              <n-radio-button v-for="item in FILL_TYPES" :key="item.value" :value="item.value">
-                {{ item.label }}
-              </n-radio-button>
-            </n-space>
-          </n-radio-group>
-          <n-color-picker
-            v-if="barFillType === 'single'"
-            v-model:value="barSingleColor"
-            :show-alpha="false"
-            @update:value="onUpdateColor"
-          />
-          <n-form :show-label="false" class="padding">
-            <n-grid :cols="24" :x-gap="12">
-              <n-form-item-gi v-if="barFillType === 'gradient'" :span="16">
-                <n-dynamic-input
-                  v-model:value="barGradientColor"
-                  :on-create="onCreateGradient"
-                >
-                  <template #create-button-default>添加渐变</template>
-                  <template #default="{ value }">
-                    <div class="data-item">
-                      <n-color-picker
-                        v-model:value="value.color"
-                        :show-alpha="false"
-                        @update:value="onUpdateGradient"
-                      />
-                      <n-input-number
-                        v-model:value="value.offset"
-                        :min="0"
-                        :max="1"
-                        :step="0.1"
-                        @update:value="onUpdateGradient"
-                      />
-                    </div>
-                  </template>
-                </n-dynamic-input>
-              </n-form-item-gi>
-              <n-form-item-gi v-if="barFillType === 'pattern'" :span="9">
-                <n-select
-                  v-model:value="barPatternSrc"
-                  :options="patternOptions"
-                  @update:value="onUpdatePattern"
-                >
-                </n-select>
-              </n-form-item-gi>
-            </n-grid>
-          </n-form>
+          <n-space vertical class="padding">
+            <!-- type select -->
+            <n-radio-group v-model:value="barFillType">
+              <n-space>
+                <n-radio-button v-for="item in FILL_TYPES" :key="item.value" :value="item.value">
+                  {{ item.label }}
+                </n-radio-button>
+              </n-space>
+            </n-radio-group>
+            <!-- single -->
+            <n-color-picker
+              v-if="barFillType === 'single'"
+              v-model:value="barSingleColor"
+              :show-alpha="false"
+            />
+            <!-- gradient -->
+            <n-dynamic-input
+              v-if="barFillType === 'gradient'"
+              v-model:value="barGradientColor"
+              :on-create="onCreateGradient"
+            >
+              <template #create-button-default>添加渐变</template>
+              <template #default="{ value }">
+                <div class="data-item">
+                  <n-color-picker v-model:value="value.color" :show-alpha="false" />
+                  <n-input-number v-model:value="value.offset" :min="0" :max="1" :step="0.1" />
+                </div>
+              </template>
+            </n-dynamic-input>
+            <!-- pattern -->
+            <n-select
+              v-if="barFillType === 'pattern'"
+              v-model:value="barPatternSrc"
+              :options="patternOptions"
+            />
+          </n-space>
         </n-tab-pane>
         <n-tab-pane name="line-chart" tab="折线图">
           <n-form label-placement="top" class="padding">
