@@ -140,7 +140,7 @@ function showExportDialog() {
 /* chart options */
 
 const options = ref<ChartOptions>({
-  title: 'My Chart',
+  title: '历年粮食产量数据',
   width: 640,
   height: 480,
   background: '#fafafa',
@@ -264,9 +264,6 @@ function onCreateGradient() {
 </script>
 
 <template>
-  <header>
-    <h1>Hello, world!</h1>
-  </header>
   <main>
     <MyChart class="chart" :data="chartData" :options="options" />
     <n-card class="settings" title="图表设置">
@@ -442,10 +439,6 @@ function onCreateGradient() {
 </template>
 
 <style scoped>
-header {
-  margin-bottom: 1rem;
-}
-
 main {
   display: flex;
   flex-direction: row;
