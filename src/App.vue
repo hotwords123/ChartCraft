@@ -33,8 +33,9 @@ import {
   type GradientOptions,
 } from './chart'
 import { loadTextures, type TextureData } from './texture'
+import { getYearTimestamp } from './util'
 
-/* chart data */
+/* ==== chart data ==== */
 
 interface DataItem {
   x: string
@@ -42,42 +43,38 @@ interface DataItem {
   checked: boolean
 }
 
-const initialData = [
+const initialData: ChartDataItem[] = [
   ['2019', 2],
   ['2020', 3],
   ['2021', 5],
   ['2022', 4],
-] as const
+]
 const data = ref<DataItem[]>(initialData.map(([x, y]) => ({ x, y, checked: true })))
+
+/* data list */
 
 const chartData = computed(() => {
   return data.value.filter((item) => item.checked).map((item) => [item.x, item.y] as ChartDataItem)
 })
-
-function getYearTimestamp(year: number): number {
-  return new Date(year, 0).getTime()
-}
 
 function onUpdateX(index: number, value: string) {
   data.value[index].x = value
 }
 
 function onUpdateY(index: number, value: number | null) {
-  if (value !== null) {
-    data.value[index].y = value
-  }
+  if (value !== null) data.value[index].y = value
 }
 
-function onCreate(index: number): DataItem {
+function onCreateData(index: number): DataItem {
   let x = ''
   if (index > 0 && index <= data.value.length) {
     let prevX = parseInt(data.value[index - 1].x)
-    if (!isNaN(prevX)) {
-      x = `${prevX + 1}`
-    }
+    if (!isNaN(prevX)) x = `${prevX + 1}`
   }
   return { x, y: 0, checked: true }
 }
+
+/* year filter */
 
 function applyYearFilter(filter: [number, number] | null) {
   // 在这里实现筛选逻辑
@@ -96,6 +93,8 @@ function clearYearFilter() {
     item.checked = true
   }
 }
+
+/* import & export */
 
 function showImportDialog() {
   const input = document.createElement('input')
@@ -137,7 +136,7 @@ function showExportDialog() {
   URL.revokeObjectURL(url)
 }
 
-/* chart options */
+/* ==== chart options ==== */
 
 const options = ref<ChartOptions>({
   title: '历年粮食产量数据',
@@ -187,29 +186,27 @@ const options = ref<ChartOptions>({
   },
 })
 
-function useNonNullNumber<K extends string>(object: Record<K, number>, key: K) {
+/**
+ * Wraps a property in an object, so that setting it to null becomes a no-op.
+ * @param object the object to wrap
+ * @param key the key of the property
+ * @returns a writable computed ref
+ */
+function useNonNull<R, K extends keyof R>(object: R, key: K) {
   return computed({
     get() {
-      return object[key] as number
+      return object[key]
     },
-    set(value: number | null) {
-      if (value !== null) {
-        object[key] = value
-      }
+    set(value: R[K] | null) {
+      if (value !== null) object[key] = value
     },
   })
 }
 
-const chartWidth = useNonNullNumber(options.value, 'width')
-const chartHeight = useNonNullNumber(options.value, 'height')
-const lineChartLineWidth = useNonNullNumber(options.value.lineChart, 'lineWidth')
+const chartWidth = useNonNull(options.value, 'width')
+const chartHeight = useNonNull(options.value, 'height')
 
-const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, value: name }))
-const TEXT_KEY_MAP = {
-  title: '标题',
-  ticks: '刻度',
-  labels: '标签',
-}
+/* bar chart */
 
 const PATTERNS = ref<TextureData[]>([])
 loadTextures().then((textures) => {
@@ -261,6 +258,28 @@ function onCreateGradient() {
     offset: 0,
   }
 }
+
+/* line chart */
+
+const lineChartLineWidth = useNonNull(options.value.lineChart, 'lineWidth')
+const lineChartMarkerSize = useNonNull(options.value.lineChart.marker, 'size')
+const lineChartMarkerLineWidth = useNonNull(options.value.lineChart.marker, 'lineWidth')
+
+const DASH_OPTIONS = Object.keys(DASH_PATTERNS).map((name) => ({ label: name, value: name }))
+
+/* text */
+
+const TEXT_KEY_MAP = {
+  title: '标题',
+  ticks: '刻度',
+  labels: '标签',
+}
+
+const fontSize = {
+  title: useNonNull(options.value.text.title, 'size'),
+  ticks: useNonNull(options.value.text.ticks, 'size'),
+  labels: useNonNull(options.value.text.labels, 'size'),
+}
 </script>
 
 <template>
@@ -288,7 +307,7 @@ function onCreateGradient() {
             </n-space>
           </div>
           <n-scrollbar class="scroll">
-            <n-dynamic-input v-model:value="data" @create="onCreate" class="padding">
+            <n-dynamic-input v-model:value="data" @create="onCreateData" class="padding">
               <template #create-button-default>添加数据</template>
               <template #default="{ index, value }">
                 <div class="data-item">
@@ -390,7 +409,7 @@ function onCreateGradient() {
               </n-form-item-gi>
               <n-form-item-gi :span="8" label="标记大小">
                 <n-input-number
-                  v-model:value="options.lineChart.marker.size"
+                  v-model:value="lineChartMarkerSize"
                   :min="1"
                   :max="10"
                   :step="0.5"
@@ -407,7 +426,7 @@ function onCreateGradient() {
               </n-form-item-gi>
               <n-form-item-gi :span="8" label="标记描边粗细">
                 <n-input-number
-                  v-model:value="options.lineChart.marker.lineWidth"
+                  v-model:value="lineChartMarkerLineWidth"
                   :min="0"
                   :max="3"
                   :step="0.2"
@@ -427,7 +446,12 @@ function onCreateGradient() {
                   <n-color-picker v-model:value="fontOptions.fillStyle" :show-alpha="false" />
                 </n-form-item-gi>
                 <n-form-item-gi :span="8" :label="TEXT_KEY_MAP[key] + '字体大小'">
-                  <n-input-number v-model:value="fontOptions.size" :min="12" :max="36" :step="1" />
+                  <n-input-number
+                    v-model:value="fontSize[key].value"
+                    :min="12"
+                    :max="36"
+                    :step="1"
+                  />
                 </n-form-item-gi>
               </template>
             </n-grid>

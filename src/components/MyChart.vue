@@ -2,7 +2,7 @@
 import { onMounted, ref, watch, nextTick } from 'vue'
 import { type ChartData, type ChartOptions, DASH_PATTERNS, type FontOptions } from '@/chart'
 import TickLocator from '@/TickLocator'
-import { formatFloat } from '@/util'
+import { binarySearchMin, clamp, formatFloat } from '@/util'
 
 const props = defineProps<{
   data: ChartData
@@ -37,6 +37,8 @@ function resizeCanvas() {
 
   const devicePixelRatio = window.devicePixelRatio || 1
 
+  // high DPI support: scale the canvas to match the device pixel ratio
+  // see https://web.dev/canvas-hidipi/
   canvas.width = width * devicePixelRatio
   canvas.height = height * devicePixelRatio
   canvas.style.width = `${width}px`
@@ -64,23 +66,28 @@ function prepareData() {
 let oldWidth = 0
 let oldHeight = 0
 
+// origin is at the bottom left corner
 let originX: number
 let originY: number
+
+// box is the area for drawing the chart body
 let boxWidth: number
 let boxHeight: number
 
+// distance between two x-axis ticks
 let stepX: number
 
-let barBoxHeight: number
-let barOffsetY: number
-let barStepY: number
+// for bar chart
+let barBoxHeight: number // distance from 0 to the last y-axis tick
+let barOffsetY: number // y coordinate of the first y-axis tick
+let barStepY: number // distance per unit y
 
-let lineBoxHeight: number
-let lineOffsetY: number
-let lineStepY: number
+// for line chart
+let lineOffsetY: number // y coordinate of zero percentage
+let lineStepY: number // distance per unit percentage
 
-let xTickIndices: number[]
-let yTicks: number[]
+let xTickIndices: number[] // indices of x-axis ticks
+let yTicks: number[] // y-axis tick values
 
 function calculateLayout(ctx: CanvasRenderingContext2D) {
   const { data, options } = props
@@ -122,10 +129,12 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
 
   const locator = new TickLocator()
   if (yMin === yMax || yMin < 0.6 * yMax) {
+    // ticks start from zero
     locator.maxTicks = 10
     yTicks = locator.getTicks(0, yMax)
     barOffsetY = 0
   } else {
+    // the y-range is relatively small, so we can start from yMin
     locator.maxTicks = 7
     yTicks = locator.getTicks(yMin, yMax)
     barOffsetY = 0.2 * boxHeight
@@ -137,31 +146,7 @@ function calculateLayout(ctx: CanvasRenderingContext2D) {
   // for line chart
   const maxPercentage = Math.max(...percentages)
   lineOffsetY = 0.25 * boxHeight
-  lineBoxHeight = boxHeight - 50 - lineOffsetY
-  lineStepY = lineBoxHeight / maxPercentage
-}
-
-/**
- * Finds the smallest integer that satisfies the given predicate.
- * @param lbound the lower bound of the search range
- * @param ubound the upper bound of the search range
- * @param predicate the predicate to test
- * @returns the result integer
- */
-function binarySearchMin(
-  lbound: number,
-  ubound: number,
-  predicate: (value: number) => boolean,
-): number {
-  while (lbound < ubound) {
-    let mid = Math.floor((lbound + ubound) / 2)
-    if (predicate(mid)) {
-      ubound = mid
-    } else {
-      lbound = mid + 1
-    }
-  }
-  return lbound
+  lineStepY = (boxHeight - 50 - lineOffsetY) / maxPercentage
 }
 
 /**
@@ -191,18 +176,19 @@ let scale = 1
 let translateX = 0
 let translateY = 0
 
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value))
-}
-
+/**
+ * Clamps the transform to maintain a proper position of the chart.
+ */
 function clampTransform() {
   const { width, height } = props.options
   const borderX = width - width * scale
   const borderY = height - height * scale
   if (scale < 1) {
+    // keep the chart inside the canvas
     translateX = clamp(translateX, 0, borderX)
     translateY = clamp(translateY, 0, borderY)
   } else {
+    // keep the canvas inside the chart (which is partially visible)
     translateX = clamp(translateX, borderX, 0)
     translateY = clamp(translateY, borderY, 0)
   }
@@ -257,14 +243,14 @@ function render(ctx: CanvasRenderingContext2D) {
   const { options } = props
   const { width, height } = options
 
-  prepareData()
-
   if (width !== oldWidth || height !== oldHeight) {
     resizeCanvas()
 
     oldWidth = width
     oldHeight = height
   }
+
+  prepareData()
 
   calculateLayout(ctx)
 
@@ -387,7 +373,7 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
   ctx.textBaseline = 'top'
   applyFontOptions(ctx, options.text.ticks)
   for (let i of xTickIndices) {
-    ctx.fillText(`${data[i][0]}`, (i + 0.5) * stepX, 8)
+    ctx.fillText(data[i][0], (i + 0.5) * stepX, 8)
   }
 
   // draw x-axis title
@@ -401,7 +387,7 @@ function drawAxes(ctx: CanvasRenderingContext2D) {
     ctx.fillText('0', -8, 0)
   }
   for (let y of yTicks) {
-    ctx.fillText(`${formatFloat(y)}`, -8, barChartY(y))
+    ctx.fillText(formatFloat(y), -8, barChartY(y))
   }
 
   // draw y-axis title
@@ -445,7 +431,7 @@ function drawBarChart(ctx: CanvasRenderingContext2D) {
 
     // draw bar value
     applyFontOptions(ctx, options.text.labels)
-    ctx.fillText(`${formatFloat(y)}`, (i + 0.5) * stepX, barChartY(y) - 5)
+    ctx.fillText(formatFloat(y), (i + 0.5) * stepX, barChartY(y) - 5)
   })
 }
 
