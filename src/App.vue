@@ -105,6 +105,7 @@ function showImportDialog() {
     if (files && files.length > 0) {
       loadDataFile(files[0]).catch((err) => {
         console.error(err)
+        alert(err)
       })
     }
   })
@@ -115,7 +116,16 @@ async function loadDataFile(file: File) {
   if (file.type !== 'application/json') throw new Error('unsupported file type')
 
   const text = await file.text()
-  const json = JSON.parse(text) as [string, number][]
+  const json = JSON.parse(text)
+
+  if (!Array.isArray(json)) throw new Error('json should be array')
+
+  const validateItem = (item: any): item is [string, number] =>
+    Array.isArray(item) &&
+    item.length === 2 &&
+    typeof item[0] === 'string' &&
+    typeof item[1] === 'number'
+  if (!json.every(validateItem)) throw new Error('item should be [string, number]')
 
   data.value = json.map(([x, y]) => ({ x, y, checked: true }))
 }
