@@ -14,6 +14,11 @@ export interface TextureData {
   img: HTMLImageElement
 }
 
+/**
+ * Loads a texture from a URL.
+ * @param src the URL of the texture
+ * @returns a promise that resolves to a fully-loaded <img> of the texture
+ */
 function loadTexture(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -23,6 +28,10 @@ function loadTexture(src: string): Promise<HTMLImageElement> {
   })
 }
 
+/**
+ * Loads all available textures.
+ * @returns a promise that resolves to a list of texture data
+ */
 export function loadTextures(): Promise<TextureData[]> {
   return Promise.all(
     TEXTURE_LIST.map(async ({ label, id, src }) => {
